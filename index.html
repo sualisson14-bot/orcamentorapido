@@ -1,0 +1,1732 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1">
+<meta name="theme-color" content="#16181A">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="Orçamento">
+<link rel="manifest" href="manifest.json">
+<title>Orçamento de Obra</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Narrow:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#EDEEE8; --panel:#FFF; --ink:#16181A; --ink2:#4A4F52; --ink3:#858C8E;
+  --rule:#D6D9D1; --rule2:#E7E9E2; --stamp:#B7332A; --stamp2:#F7E5E3;
+  --blue:#1F5FA0; --blue2:#E5EEF8; --marker:#EFC63C; --marker2:#FDF4D6; --ok:#2F6A4A;
+  --safe-b:env(safe-area-inset-bottom,0px); --safe-t:env(safe-area-inset-top,0px);
+  --nav:62px;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0;overscroll-behavior-y:none}
+body{
+  background:var(--paper);color:var(--ink);
+  font-family:'IBM Plex Sans',system-ui,-apple-system,sans-serif;font-size:15px;
+  -webkit-font-smoothing:antialiased;-webkit-text-size-adjust:100%;
+}
+.app{max-width:600px;margin:0 auto;background:var(--paper);min-height:100vh;position:relative}
+input,select,textarea,button{font-family:inherit;font-size:16px}
+
+/* ---------- topo ---------- */
+.top{
+  position:sticky;top:0;z-index:30;background:var(--ink);color:#fff;
+  padding:calc(var(--safe-t) + 12px) 14px 12px;display:flex;align-items:center;gap:11px;
+  border-bottom:2px solid var(--stamp)}
+.top h1{
+  font-family:'Archivo Narrow',sans-serif;font-size:17px;font-weight:700;letter-spacing:.05em;
+  margin:0;flex:1;line-height:1.2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.top .sub{display:block;font-size:10px;letter-spacing:.16em;color:#98A0A2;font-weight:600;margin-top:2px}
+.tbtn{
+  background:transparent;border:1px solid #3B4143;color:#fff;padding:8px 11px;border-radius:2px;
+  font-family:'Archivo Narrow',sans-serif;font-size:11px;font-weight:600;letter-spacing:.1em;
+  text-transform:uppercase;cursor:pointer;white-space:nowrap;min-height:38px}
+.tbtn:active{background:#2A2F31}
+.tbtn.red{background:var(--stamp);border-color:var(--stamp)}
+.back{background:none;border:none;color:#fff;font-size:22px;padding:0 4px;cursor:pointer;line-height:1}
+
+/* ---------- telas ---------- */
+.screen{display:none;padding-bottom:calc(var(--nav) + var(--safe-b) + 74px)}
+.screen.on{display:block}
+.pad{padding:14px}
+.hint{font-size:12.5px;color:var(--ink3);line-height:1.55}
+
+/* ---------- cards de obra ---------- */
+.obra{
+  background:var(--panel);border:1px solid var(--rule);margin-bottom:10px;padding:14px;
+  display:flex;gap:12px;align-items:flex-start;cursor:pointer}
+.obra:active{background:#F8F9F5}
+.obra .g{flex:1;min-width:0}
+.obra .nm{font-family:'Archivo Narrow',sans-serif;font-size:16px;font-weight:700;letter-spacing:.02em;
+  line-height:1.25;margin-bottom:3px}
+.obra .cl{font-size:12.5px;color:var(--ink3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.obra .vl{font-family:'IBM Plex Mono',monospace;font-size:15px;font-weight:600;margin-top:7px}
+.obra .mo{font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--stamp);font-weight:600}
+.obra .kebab{border:none;background:none;color:var(--ink3);font-size:20px;padding:2px 4px;cursor:pointer;line-height:1}
+.empty{text-align:center;padding:56px 22px;color:var(--ink3)}
+.empty b{display:block;font-family:'Archivo Narrow',sans-serif;font-size:17px;color:var(--ink2);margin-bottom:7px}
+
+/* ---------- lista de itens ---------- */
+.etapa{
+  background:var(--ink);color:#fff;padding:11px 13px;display:flex;align-items:center;gap:9px;
+  font-family:'Archivo Narrow',sans-serif;font-size:11.5px;font-weight:700;letter-spacing:.14em;
+  text-transform:uppercase;cursor:pointer;margin-top:12px}
+.etapa .ct{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.etapa .vv{font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:0;font-weight:500;color:#D8DCDA}
+.it{background:var(--panel);border-bottom:1px solid var(--rule2);padding:11px 13px;cursor:pointer;position:relative}
+.it:active{background:#F7F8F4}
+.it .t{font-size:14px;line-height:1.35;margin-bottom:4px;padding-right:78px}
+.it .s{font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--ink3)}
+.it .s em{font-style:normal;color:var(--stamp);font-weight:600}
+.it .v{position:absolute;right:13px;top:11px;font-family:'IBM Plex Mono',monospace;font-size:14px;font-weight:600}
+.it .amb{font-size:11px;color:var(--ink3);margin-top:3px}
+.it.rev::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--stamp)}
+.it .track{height:3px;background:var(--rule2);margin-top:7px}
+.it .track i{display:block;height:100%;background:var(--marker)}
+.addrow{
+  background:var(--panel);border-bottom:1px solid var(--rule2);padding:11px 13px;color:var(--blue);
+  font-size:13px;font-weight:600;cursor:pointer}
+
+/* ---------- botões ---------- */
+.btn{
+  display:block;width:100%;padding:14px;border:1.4px solid var(--ink);background:var(--panel);color:var(--ink);
+  font-family:'Archivo Narrow',sans-serif;font-size:13px;font-weight:700;letter-spacing:.12em;
+  text-transform:uppercase;cursor:pointer;margin-bottom:9px;min-height:48px}
+.btn:active{background:var(--ink);color:#fff}
+.btn.pri{background:var(--stamp);border-color:var(--stamp);color:#fff}
+.btn.pri:active{background:#93271F}
+.btn.gh{border-color:var(--rule);color:var(--ink2)}
+.btn.gh:active{background:var(--rule2);color:var(--ink)}
+.btn:disabled{opacity:.4}
+.btn.sm{padding:10px;font-size:11.5px;min-height:42px}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.fab{
+  position:fixed;left:50%;transform:translateX(-50%);
+  bottom:calc(var(--nav) + var(--safe-b) + 14px);z-index:35;
+  background:var(--stamp);color:#fff;border:none;padding:15px 26px;
+  font-family:'Archivo Narrow',sans-serif;font-size:13px;font-weight:700;letter-spacing:.12em;
+  text-transform:uppercase;box-shadow:0 6px 20px -6px rgba(183,51,42,.7);cursor:pointer;max-width:560px;width:calc(100% - 28px)}
+.fab:active{background:#93271F}
+
+/* ---------- navegação inferior ---------- */
+.nav{
+  position:fixed;bottom:0;left:0;right:0;z-index:40;background:var(--ink);
+  display:flex;padding-bottom:var(--safe-b);border-top:1px solid #2C3133}
+.nav .app-in{max-width:600px;margin:0 auto;display:flex;width:100%}
+.nav button{
+  flex:1;background:none;border:none;color:#7E8688;padding:9px 4px 10px;cursor:pointer;
+  display:flex;flex-direction:column;align-items:center;gap:3px;min-height:var(--nav)}
+.nav button.on{color:#fff}
+.nav button.on .ic{color:var(--marker)}
+.nav .ic{font-size:17px;line-height:1}
+.nav .lb{font-family:'Archivo Narrow',sans-serif;font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;font-weight:600}
+
+/* ---------- barra de total ---------- */
+.totbar{
+  position:fixed;bottom:calc(var(--nav) + var(--safe-b));left:0;right:0;z-index:38;background:#22262880;
+  backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+.totbar .in{max-width:600px;margin:0 auto;background:#212527;color:#fff;display:flex;padding:9px 14px;gap:16px;
+  border-top:1px solid #33393B}
+.totbar .c{flex:1;min-width:0}
+.totbar b{display:block;font-family:'IBM Plex Mono',monospace;font-size:15px;font-weight:600}
+.totbar span{font-family:'Archivo Narrow',sans-serif;font-size:8.5px;letter-spacing:.16em;text-transform:uppercase;color:#949B9D}
+.totbar .c.mo b{color:var(--marker)}
+
+/* ---------- folha inferior (editor) ---------- */
+.scrim{position:fixed;inset:0;background:rgba(16,18,20,.5);z-index:50;opacity:0;pointer-events:none;transition:opacity .18s}
+.scrim.on{opacity:1;pointer-events:auto}
+.sheet{
+  position:fixed;left:0;right:0;bottom:0;z-index:60;background:var(--panel);
+  max-width:600px;margin:0 auto;transform:translateY(102%);transition:transform .22s cubic-bezier(.3,.8,.4,1);
+  max-height:92vh;overflow-y:auto;padding-bottom:calc(var(--safe-b) + 16px);border-top:3px solid var(--ink)}
+.sheet.on{transform:translateY(0)}
+.sheet .hd{
+  position:sticky;top:0;background:var(--panel);padding:15px 15px 11px;border-bottom:1px solid var(--rule);
+  display:flex;align-items:center;gap:11px;z-index:2}
+.sheet .hd h3{font-family:'Archivo Narrow',sans-serif;font-size:14px;letter-spacing:.12em;text-transform:uppercase;
+  margin:0;flex:1}
+.sheet .bd{padding:15px}
+.grip{width:38px;height:4px;background:var(--rule);border-radius:3px;margin:9px auto 0}
+.f{margin-bottom:14px}
+.f label{
+  display:block;font-family:'Archivo Narrow',sans-serif;font-size:10px;font-weight:700;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--ink3);margin-bottom:5px}
+.f input,.f select,.f textarea{
+  width:100%;padding:12px 11px;border:1.3px solid var(--rule);background:var(--panel);outline:none;
+  font-size:16px;min-height:46px}
+.f input:focus,.f select:focus,.f textarea:focus{border-color:var(--blue)}
+.f input.money{font-family:'IBM Plex Mono',monospace;font-weight:600;text-align:right}
+.f input.mo{background:var(--marker2);border-color:#E0C77A}
+.f textarea{min-height:80px;resize:vertical;line-height:1.55}
+.f3{display:grid;grid-template-columns:1fr 76px;gap:9px}
+.calcline{
+  background:var(--ink);color:#fff;padding:13px 15px;display:flex;justify-content:space-between;align-items:center;
+  font-family:'IBM Plex Mono',monospace;margin-bottom:15px}
+.calcline span{font-family:'Archivo Narrow',sans-serif;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:#98A0A2}
+.calcline b{font-size:19px}
+.split{display:flex;gap:14px;margin-bottom:14px}
+.split div{flex:1;border:1px solid var(--rule);padding:10px}
+.split span{display:block;font-family:'Archivo Narrow',sans-serif;font-size:9px;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--ink3);margin-bottom:4px}
+.split b{font-family:'IBM Plex Mono',monospace;font-size:14px}
+.sugg{display:flex;flex-wrap:wrap;gap:6px;margin-top:-6px;margin-bottom:14px}
+.sugg button{
+  border:1px solid var(--rule);background:var(--panel);padding:7px 10px;font-size:12px;cursor:pointer;
+  color:var(--ink2);text-align:left;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sugg button:active{background:var(--blue2);border-color:var(--blue)}
+
+/* ---------- resumo ---------- */
+.cards{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--rule);border:1px solid var(--rule)}
+.card{background:var(--panel);padding:14px}
+.card.full{grid-column:1/-1}
+.card span{font-family:'Archivo Narrow',sans-serif;font-size:9.5px;font-weight:700;letter-spacing:.15em;
+  text-transform:uppercase;color:var(--ink3);display:block;margin-bottom:5px}
+.card b{font-family:'IBM Plex Mono',monospace;font-size:19px;font-weight:600;display:block}
+.card small{font-size:11px;color:var(--ink3);display:block;margin-top:3px}
+.card.hl b{color:var(--stamp)}
+.card.big b{font-size:25px}
+.bar{display:flex;height:24px;border:1px solid var(--ink);margin:16px 0 9px}
+.bar i{display:block;height:100%}
+.leg{display:flex;gap:15px;font-size:11.5px;color:var(--ink2);flex-wrap:wrap}
+.leg b{display:inline-block;width:10px;height:10px;margin-right:5px;vertical-align:-1px}
+.et-l{background:var(--panel);border-bottom:1px solid var(--rule2);padding:11px 13px}
+.et-l .r{display:flex;justify-content:space-between;gap:10px;font-size:13.5px;margin-bottom:6px}
+.et-l .r b{font-family:'IBM Plex Mono',monospace;font-size:13px}
+.et-l .mb{height:5px;background:var(--rule2)}
+.et-l .mb i{display:block;height:100%;background:var(--marker)}
+.et-l .sm{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink3);margin-top:5px}
+
+/* ---------- preços ---------- */
+.srch{width:100%;padding:12px;border:1.3px solid var(--rule);background:var(--panel);outline:none;font-size:16px;
+  margin-bottom:10px;min-height:46px}
+.srch:focus{border-color:var(--blue)}
+
+/* ---------- seletor de padrão ---------- */
+.segs{display:flex;border:1.4px solid var(--ink);background:var(--panel);margin-bottom:10px}
+.segs button{
+  flex:1;border:none;background:none;padding:11px 4px;cursor:pointer;
+  font-family:'Archivo Narrow',sans-serif;font-size:11.5px;font-weight:700;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--ink3);border-right:1px solid var(--rule2);min-height:44px}
+.segs button:last-child{border-right:none}
+.segs button.on{background:var(--ink);color:#fff}
+.segs button.on[data-p="a"]{background:var(--stamp)}
+.segs button.on[data-p="b"]{background:var(--ink2)}
+.segs .px{display:block;font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:0;
+  font-weight:500;opacity:.75;margin-top:2px;text-transform:none}
+.padtag{
+  display:inline-block;font-family:'Archivo Narrow',sans-serif;font-size:8.5px;font-weight:700;
+  letter-spacing:.1em;text-transform:uppercase;padding:1px 5px;border:1px solid currentColor;margin-left:6px}
+.padtag.a{color:var(--stamp)} .padtag.b{color:var(--ink3)} .padtag.m{color:var(--blue)}
+.tiers{border:1px solid var(--rule);margin-bottom:15px}
+.tiers .tr{display:grid;grid-template-columns:86px 1fr 1fr;gap:0;border-bottom:1px solid var(--rule2);align-items:center}
+.tiers .tr:last-child{border-bottom:none}
+.tiers .tr.hd{background:var(--rule2)}
+.tiers .lb{
+  font-family:'Archivo Narrow',sans-serif;font-size:10px;font-weight:700;letter-spacing:.1em;
+  text-transform:uppercase;padding:0 9px;color:var(--ink2)}
+.tiers .tr.hd .lb,.tiers .tr.hd span{padding:8px 9px;font-family:'Archivo Narrow',sans-serif;font-size:9px;
+  letter-spacing:.14em;text-transform:uppercase;color:var(--ink3);font-weight:700}
+.tiers input{
+  width:100%;border:none;border-left:1px solid var(--rule2);padding:12px 9px;outline:none;
+  font-family:'IBM Plex Mono',monospace;font-size:15px;text-align:right;background:var(--panel);min-height:46px}
+.tiers input:focus{background:var(--blue2)}
+.tiers input.mo{background:var(--marker2)}
+.tiers input.mo:focus{background:#FCEBAE}
+.cmp{display:grid;grid-template-columns:1fr 1fr 1fr;gap:1px;background:var(--rule);border:1px solid var(--rule);margin-top:16px}
+.cmp div{background:var(--panel);padding:12px 9px;text-align:center;cursor:pointer}
+.cmp div.on{background:var(--ink);color:#fff}
+.cmp span{font-family:'Archivo Narrow',sans-serif;font-size:9px;letter-spacing:.13em;text-transform:uppercase;
+  color:var(--ink3);display:block;margin-bottom:4px}
+.cmp div.on span{color:#98A0A2}
+.cmp b{font-family:'IBM Plex Mono',monospace;font-size:14px;font-weight:600}
+.cmp small{display:block;font-size:10px;color:var(--ink3);margin-top:2px}
+.cmp div.on small{color:#98A0A2}
+.cat{background:var(--panel);border-bottom:1px solid var(--rule2);padding:11px 13px;cursor:pointer;
+  display:flex;gap:11px;align-items:center}
+.cat .g{flex:1;min-width:0}
+.cat .t{font-size:14px;line-height:1.3}
+.cat .u{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink3);margin-top:2px}
+.cat .p{text-align:right;font-family:'IBM Plex Mono',monospace;white-space:nowrap}
+.cat .p b{display:block;font-size:14px;font-weight:600;color:var(--stamp)}
+.cat .p small{font-size:11px;color:var(--ink3)}
+
+
+/* ---------- leitura de projeto ---------- */
+.drop{border:1.5px dashed var(--rule);padding:28px 16px;text-align:center;background:var(--panel);cursor:pointer}
+.drop:active,.drop.over{border-color:var(--stamp);background:var(--stamp2)}
+.drop b{display:block;font-family:'Archivo Narrow',sans-serif;font-size:15px;margin-bottom:5px}
+.drop small{color:var(--ink3);font-size:12px;line-height:1.6}
+.frow{display:flex;align-items:center;gap:10px;background:var(--panel);border:1px solid var(--rule2);padding:11px;margin-top:8px}
+.frow .n{flex:1;font-size:12.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.frow .m{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink3)}
+.frow button{border:none;background:none;color:var(--ink3);font-size:18px;padding:4px;cursor:pointer}
+.prog{height:5px;background:var(--rule2);margin-top:14px;display:none}
+.prog.on{display:block}
+.prog i{display:block;height:100%;background:var(--stamp);width:0;transition:width .25s}
+.chk{background:var(--panel);border-bottom:1px solid var(--rule2);padding:11px 13px;display:flex;gap:11px;
+  align-items:center;cursor:pointer}
+.chk .bx{width:21px;height:21px;border:1.6px solid var(--rule);flex:0 0 auto;display:flex;align-items:center;
+  justify-content:center;font-size:14px;color:#fff}
+.chk.on .bx{background:var(--ink);border-color:var(--ink)}
+.chk.off{opacity:.45}
+.chk .g{flex:1;min-width:0}
+.chk .t{font-size:14px;line-height:1.3}
+.chk .u{font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--ink3);margin-top:2px}
+.chk .p{text-align:right;font-family:'IBM Plex Mono',monospace;white-space:nowrap}
+.chk .p b{display:block;font-size:13.5px;font-weight:600}
+.chk .p small{font-size:10.5px;color:var(--ink3)}
+.chk input.q{width:74px;border:1.2px solid var(--rule);padding:8px;font-family:'IBM Plex Mono',monospace;
+  font-size:14px;text-align:right;min-height:40px}
+.chk input.q:focus{border-color:var(--blue);outline:none}
+.toast{
+  position:fixed;left:50%;transform:translateX(-50%) translateY(12px);
+  bottom:calc(var(--nav) + var(--safe-b) + 76px);background:var(--ink);color:#fff;padding:12px 20px;
+  font-family:'Archivo Narrow',sans-serif;font-size:12px;letter-spacing:.1em;text-transform:uppercase;
+  z-index:80;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;border-left:3px solid var(--marker);
+  max-width:88vw;text-align:center}
+.toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+.menu{position:fixed;inset:0;z-index:70;display:none}
+.menu.on{display:block}
+.menu .bg{position:absolute;inset:0;background:rgba(16,18,20,.4)}
+.menu .box{position:absolute;left:50%;bottom:calc(var(--safe-b) + 16px);transform:translateX(-50%);
+  width:calc(100% - 28px);max-width:560px;background:var(--panel);border:1.5px solid var(--ink)}
+.menu .box button{display:block;width:100%;text-align:left;padding:15px;border:none;
+  border-bottom:1px solid var(--rule2);background:none;font-size:15px;cursor:pointer}
+.menu .box button:active{background:var(--rule2)}
+.menu .box button.dg{color:var(--stamp)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+@media print{.nav,.totbar,.fab,.top,.addrow{display:none!important}.screen{display:block!important;padding:0}}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <header class="top">
+    <button class="back" id="back" style="display:none">‹</button>
+    <h1 id="topTit">Obras<span class="sub" id="topSub">Orçamento de reformas</span></h1>
+    <button class="tbtn" id="topAct" style="display:none"></button>
+  </header>
+
+  <!-- ============ OBRAS ============ -->
+  <section class="screen on" id="sc-obras">
+    <div class="pad">
+      <input class="srch" id="bObra" placeholder="Buscar obra ou cliente">
+      <div id="listaObras"></div>
+    </div>
+    <button class="fab" id="novaObra">+ Nova obra</button>
+  </section>
+
+  <!-- ============ ORÇAMENTO ============ -->
+  <section class="screen" id="sc-orc">
+    <div class="pad" style="padding-bottom:4px">
+      <div class="segs" id="segPad">
+        <button data-p="b">Baixo<span class="px" id="px-b"></span></button>
+        <button data-p="m" class="on">Médio<span class="px" id="px-m"></span></button>
+        <button data-p="a">Alto<span class="px" id="px-a"></span></button>
+      </div>
+      <div class="row2">
+        <button class="btn gh sm" id="goPdf">Ler projeto (PDF)</button>
+        <button class="btn gh sm" id="goAdd">+ Adicionar serviço</button>
+      </div>
+      <input class="srch" id="bItem" placeholder="Buscar serviço" style="margin-top:2px">
+      <button class="btn gh sm" id="toggleMO">Só mão de obra</button>
+    </div>
+    <div id="listaItens"></div>
+    <div class="pad"><button class="btn gh" id="novaEtapa">+ Nova etapa</button></div>
+  </section>
+
+  <!-- ============ ADICIONAR SERVIÇOS ============ -->
+  <section class="screen" id="sc-add">
+    <div class="pad" style="padding-bottom:4px">
+      <input class="srch" id="bAdd" placeholder="Buscar serviço para adicionar">
+      <p class="hint" id="addInfo" style="margin:0 0 6px"></p>
+    </div>
+    <div id="listaAdd"></div>
+  </section>
+
+  <!-- ============ LER PROJETO ============ -->
+  <section class="screen" id="sc-pdf">
+    <div class="pad">
+      <p class="hint" style="margin-top:0">O texto das pranchas é lido aqui no aparelho, sem enviar nada para fora.
+      O app localiza os ambientes e as áreas, e monta os serviços pela sua tabela de preços.</p>
+      <div class="drop" id="drop"><b>Escolher PDFs do projeto</b>
+        <small>Plantas com os ambientes cotados (A=00.00m²).<br>Pode selecionar vários arquivos.</small></div>
+      <input type="file" id="fInput" accept="application/pdf" multiple hidden>
+      <div id="fList"></div>
+      <div class="prog" id="prog"><i id="progBar"></i></div>
+      <button class="btn pri" id="btnLer" disabled style="margin-top:14px">Ler projeto</button>
+
+      <div id="resultado" style="display:none">
+        <h3 style="font-family:'Archivo Narrow';font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink3);border-bottom:1px solid var(--rule);padding-bottom:7px;margin:26px 0 0">Ambientes encontrados</h3>
+      </div>
+    </div>
+    <div id="listaAmb"></div>
+    <div class="pad" id="cfgLev" style="display:none">
+      <div class="row2">
+        <div class="f"><label>Pé-direito (m)</label><input id="peDir" class="money" inputmode="decimal" value="2,70"></div>
+        <div class="f"><label>Desconto de vãos %</label><input id="descVao" class="money" inputmode="decimal" value="15"></div>
+      </div>
+      <button class="btn gh sm" id="addAmb">+ Ambiente manual</button>
+      <h3 style="font-family:'Archivo Narrow';font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink3);border-bottom:1px solid var(--rule);padding-bottom:7px;margin:20px 0 0">Serviços calculados</h3>
+    </div>
+    <div id="listaProp"></div>
+    <div class="pad" id="acaoLev" style="display:none">
+      <div class="calcline"><span>Total dos marcados</span><b id="propTot">R$ 0</b></div>
+      <button class="btn pri" id="btnLancar">Lançar no orçamento</button>
+      <p class="hint">Quantidade de parede, forro e pontos vem de cálculo sobre a área — confira em obra antes de fechar.</p>
+    </div>
+  </section>
+
+  <!-- ============ PREÇOS ============ -->
+  <section class="screen" id="sc-precos">
+    <div class="pad" style="padding-bottom:4px">
+      <div class="segs" id="segCat">
+        <button data-p="b">Baixo padrão</button>
+        <button data-p="m" class="on">Médio padrão</button>
+        <button data-p="a">Alto padrão</button>
+      </div>
+      <input class="srch" id="bCat" placeholder="Buscar serviço na tabela">
+      <p class="hint" style="margin:0 0 6px">Uma tabela, três faixas. Toque no serviço para editar as três de uma vez.</p>
+    </div>
+    <div id="listaCat"></div>
+    <div class="pad">
+      <div class="row2">
+        <button class="btn gh sm" id="addCat">+ Serviço</button>
+        <button class="btn gh sm" id="reajCat">Reajustar %</button>
+      </div>
+      <button class="btn gh sm" id="expCat">Exportar tabela (CSV)</button>
+      <button class="btn gh sm" id="resetCat">Restaurar tabela padrão</button>
+    </div>
+  </section>
+
+  <!-- ============ RESUMO ============ -->
+  <section class="screen" id="sc-resumo">
+    <div class="pad">
+      <div class="cards" id="cards"></div>
+      <div class="cmp" id="cmpPad"></div>
+      <p class="hint" style="margin:7px 0 0">Toque numa faixa para reprecificar a obra inteira. Itens com padrão próprio ou preço digitado à mão não mudam.</p>
+      <div class="bar" id="barra"></div>
+      <div class="leg">
+        <span><b style="background:var(--marker)"></b>Mão de obra</span>
+        <span><b style="background:var(--ink3)"></b>Material</span>
+        <span><b style="background:var(--stamp)"></b>Adm. e margem</span>
+      </div>
+
+      <div class="row2" style="margin-top:18px">
+        <div class="f"><label>Administração %</label><input id="bdi" class="money" inputmode="decimal" value="0"></div>
+        <div class="f"><label>Margem %</label><input id="margem" class="money" inputmode="decimal" value="0"></div>
+      </div>
+      <div class="f"><label>Reserva p/ imprevistos %</label><input id="reserva" class="money" inputmode="decimal" value="10"></div>
+
+      <h3 style="font-family:'Archivo Narrow';font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink3);border-bottom:1px solid var(--rule);padding-bottom:7px;margin:22px 0 0">Por etapa</h3>
+    </div>
+    <div id="listaEtapas"></div>
+    <div class="pad">
+      <button class="btn gh sm" id="expOrc">Exportar orçamento (CSV)</button>
+      <button class="btn gh sm" id="expJson">Salvar obra (arquivo)</button>
+      <button class="btn gh sm" id="impJson">Abrir obra (arquivo)</button>
+      <button class="btn gh sm" id="imprimir">Gerar proposta / imprimir</button>
+    </div>
+  </section>
+
+  <div class="totbar" id="totbar" style="display:none"><div class="in">
+    <div class="c mo"><b id="t-mo">R$ 0</b><span>Mão de obra</span></div>
+    <div class="c"><b id="t-mat">R$ 0</b><span>Material</span></div>
+    <div class="c"><b id="t-tot">R$ 0</b><span>Total</span></div>
+  </div></div>
+
+  <nav class="nav"><div class="app-in">
+    <button data-sc="obras" class="on"><span class="ic">▤</span><span class="lb">Obras</span></button>
+    <button data-sc="orc"><span class="ic">≡</span><span class="lb">Orçamento</span></button>
+    <button data-sc="precos"><span class="ic">₪</span><span class="lb">Preços</span></button>
+    <button data-sc="resumo"><span class="ic">◱</span><span class="lb">Resumo</span></button>
+  </div></nav>
+</div>
+
+<div class="scrim" id="scrim"></div>
+<div class="sheet" id="sheet"><div class="grip"></div><div id="sheetIn"></div></div>
+<div class="menu" id="menu"><div class="bg"></div><div class="box" id="menuBox"></div></div>
+<div class="toast" id="toast"></div>
+<input type="file" id="loadInput" accept="application/json" hidden>
+
+<script>
+/* ==========================================================
+   1. ARMAZENAMENTO — funciona no Claude e hospedado
+   ========================================================== */
+const store = (()=>{
+  const mem = {};
+  const hasWS = typeof window.storage === 'object' && window.storage && typeof window.storage.get === 'function';
+  let hasLS = false;
+  try{ localStorage.setItem('__t','1'); localStorage.removeItem('__t'); hasLS = true; }catch(e){}
+  return {
+    modo: hasWS ? 'claude' : (hasLS ? 'local' : 'memoria'),
+    async get(k){
+      if(hasWS){ try{ const r = await window.storage.get(k); return r && r.value ? r.value : null; }catch(e){ return null; } }
+      if(hasLS){ return localStorage.getItem(k); }
+      return mem[k] ?? null;
+    },
+    async set(k,v){
+      if(hasWS){ try{ await window.storage.set(k,v); return true; }catch(e){ return false; } }
+      if(hasLS){ try{ localStorage.setItem(k,v); return true; }catch(e){ return false; } }
+      mem[k]=v; return true;
+    },
+    async del(k){
+      if(hasWS){ try{ await window.storage.delete(k); }catch(e){} return; }
+      if(hasLS){ localStorage.removeItem(k); return; }
+      delete mem[k];
+    }
+  };
+})();
+
+/* ==========================================================
+   2. TABELA DE PREÇOS PADRÃO (referências 2026, editável)
+   ========================================================== */
+const CAT_PADRAO = [
+ ["PRELIMINARES E DEMOLIÇÕES","dem-alv","Demolição de alvenaria","m²",58,0],
+ ["PRELIMINARES E DEMOLIÇÕES","dem-rev","Retirada de revestimento de piso ou parede","m²",34,0],
+ ["PRELIMINARES E DEMOLIÇÕES","dem-cp","Demolição de contrapiso","m²",42,0],
+ ["PRELIMINARES E DEMOLIÇÕES","dem-ban","Retirada de bancada","un",140,0],
+ ["PRELIMINARES E DEMOLIÇÕES","dem-forro","Retirada de forro de gesso","m²",26,0],
+ ["PRELIMINARES E DEMOLIÇÕES","dem-louca","Retirada de louças e metais","un",70,0],
+ ["PRELIMINARES E DEMOLIÇÕES","dem-cac","Caçamba de entulho (5 m³)","un",0,520],
+ ["PRELIMINARES E DEMOLIÇÕES","dem-prot","Proteção de piso e vãos","m²",14,18],
+ ["ALVENARIA E ESTRUTURA","alv-elev","Alvenaria de bloco cerâmico elevada","m²",45,58],
+ ["ALVENARIA E ESTRUTURA","alv-pil","Pilar em concreto armado","m",195,175],
+ ["ALVENARIA E ESTRUTURA","alv-laje","Laje ou piso a construir","m²",165,190],
+ ["ALVENARIA E ESTRUTURA","alv-reb","Reboco de parede","m²",40,24],
+ ["ALVENARIA E ESTRUTURA","alv-cp","Contrapiso de regularização","m²",34,30],
+ ["ALVENARIA E ESTRUTURA","alv-imp","Impermeabilização de área molhada","m²",48,58],
+ ["ALVENARIA E ESTRUTURA","alv-base","Base em alvenaria para bancada","m",95,78],
+ ["ALVENARIA E ESTRUTURA","alv-vao","Abertura ou fechamento de vão","un",340,180],
+ ["INSTALAÇÕES HIDRÁULICAS","hid-af","Ponto de água fria","un",135,95],
+ ["INSTALAÇÕES HIDRÁULICAS","hid-aq","Ponto de água quente (PPR)","un",165,140],
+ ["INSTALAÇÕES HIDRÁULICAS","hid-esg","Ponto de esgoto","un",145,105],
+ ["INSTALAÇÕES HIDRÁULICAS","hid-bacia","Instalação de bacia sanitária","un",175,0],
+ ["INSTALAÇÕES HIDRÁULICAS","hid-cuba","Instalação de cuba em bancada","un",185,0],
+ ["INSTALAÇÕES HIDRÁULICAS","hid-metal","Instalação de metais (torneira, ducha, registro)","un",65,0],
+ ["INSTALAÇÕES HIDRÁULICAS","hid-hidro","Instalação de banheira de hidromassagem","un",1350,0],
+ ["INSTALAÇÕES HIDRÁULICAS","hid-boiler","Remanejamento de boiler ou aquecedor","un",680,0],
+ ["ELÉTRICA E LÓGICA","ele-pt","Ponto elétrico (tomada, interruptor, luminária)","un",58,48],
+ ["ELÉTRICA E LÓGICA","ele-rj","Ponto de lógica RJ45","un",78,65],
+ ["ELÉTRICA E LÓGICA","ele-qd","Quadro de distribuição","un",380,950],
+ ["ELÉTRICA E LÓGICA","ele-inf","Infraestrutura em eletroduto","m",22,16],
+ ["ELÉTRICA E LÓGICA","ele-lum","Instalação de luminária ou spot","un",38,0],
+ ["ELÉTRICA E LÓGICA","ele-perf","Perfil de LED de embutir","m",48,105],
+ ["ELÉTRICA E LÓGICA","ele-fita","Fita de LED com fonte","m",22,62],
+ ["ELÉTRICA E LÓGICA","ele-auto","Automação ou dimerização de circuito","un",240,320],
+ ["CLIMATIZAÇÃO","ar-cas","Instalação de cassete 4 vias","un",1450,0],
+ ["CLIMATIZAÇÃO","ar-hw","Instalação de split hi-wall","un",880,0],
+ ["CLIMATIZAÇÃO","ar-frig","Infra frigorígena e dreno","m",98,92],
+ ["FORRO E PAREDES DE GESSO","ges-forro","Forro de gesso acartonado liso","m²",65,58],
+ ["FORRO E PAREDES DE GESSO","ges-sanca","Sanca ou tabica com rasgo para LED","m",98,62],
+ ["FORRO E PAREDES DE GESSO","ges-drywall","Parede de drywall dupla face","m²",78,88],
+ ["FORRO E PAREDES DE GESSO","ges-cort","Rasgo para cortina ou persiana","m",85,55],
+ ["FORRO E PAREDES DE GESSO","ges-mold","Moldura ou detalhe curvo em gesso","m",120,70],
+ ["REVESTIMENTO DE PISO","pis-porc","Assentamento de porcelanato até 60x60","m²",95,0],
+ ["REVESTIMENTO DE PISO","pis-porcg","Assentamento de porcelanato grande formato","m²",138,0],
+ ["REVESTIMENTO DE PISO","pis-pedra","Assentamento de pedra natural em piso","m²",148,0],
+ ["REVESTIMENTO DE PISO","pis-mat","Porcelanato (material)","m²",0,165],
+ ["REVESTIMENTO DE PISO","pis-vin","Piso vinílico ou laminado","m²",52,145],
+ ["REVESTIMENTO DE PISO","pis-rej","Rejunte","m²",9,14],
+ ["REVESTIMENTO DE PISO","pis-rod","Rodapé instalado","m",26,48],
+ ["REVESTIMENTO DE PISO","pis-sol","Soleira ou peitoril em pedra","m",62,190],
+ ["REVESTIMENTO DE PISO","pis-dren","Piso drenante sobre brita","m²",88,125],
+ ["REVESTIMENTO DE PISO","pis-deck","Deck em madeira ou WPC","m²",125,360],
+ ["REVESTIMENTO DE PAREDE","par-porc","Revestimento cerâmico ou porcelanato em parede","m²",108,0],
+ ["REVESTIMENTO DE PAREDE","par-pedra","Revestimento de parede em pedra natural","m²",172,0],
+ ["REVESTIMENTO DE PAREDE","par-pain","Painel ripado ou muxarabi","m²",185,495],
+ ["REVESTIMENTO DE PAREDE","par-past","Pastilha ou filete decorativo","m²",120,220],
+ ["PEDRAS E BANCADAS","ped-quartz","Quartzito — fornecimento e instalação","m²",235,1950],
+ ["PEDRAS E BANCADAS","ped-gran","Granito — fornecimento e instalação","m²",180,720],
+ ["PEDRAS E BANCADAS","ped-trav","Travertino — fornecimento e instalação","m²",195,920],
+ ["PEDRAS E BANCADAS","ped-imp","Impermeabilização de pedra porosa","m²",45,70],
+ ["PEDRAS E BANCADAS","ped-frente","Frontão ou frente de bancada","m",120,430],
+ ["PEDRAS E BANCADAS","ped-prat","Prateleira ou nicho em pedra","m",130,470],
+ ["PINTURA E TEXTURA","pin-massa","Massa corrida com lixamento","m²",32,14],
+ ["PINTURA E TEXTURA","pin-latex","Pintura látex acrílico, 2 demãos","m²",24,16],
+ ["PINTURA E TEXTURA","pin-forro","Pintura de forro","m²",26,14],
+ ["PINTURA E TEXTURA","pin-text","Textura decorativa","m²",58,42],
+ ["PINTURA E TEXTURA","pin-esq","Pintura de esquadria ou madeira","m²",42,28],
+ ["PINTURA E TEXTURA","pin-ext","Pintura externa acrílica","m²",30,20],
+ ["ESQUADRIAS, VIDROS E ESPELHOS","esq-pm","Porta de madeira completa","un",260,1050],
+ ["ESQUADRIAS, VIDROS E ESPELHOS","esq-pa","Porta de alumínio com vidro","un",290,1950],
+ ["ESQUADRIAS, VIDROS E ESPELHOS","esq-jan","Janela de alumínio","un",195,1350],
+ ["ESQUADRIAS, VIDROS E ESPELHOS","esq-gc","Guarda-corpo metálico","m",165,590],
+ ["ESQUADRIAS, VIDROS E ESPELHOS","esq-box","Box em vidro temperado","un",210,980],
+ ["ESQUADRIAS, VIDROS E ESPELHOS","esq-esp","Espelho instalado","m²",130,420],
+ ["ESQUADRIAS, VIDROS E ESPELHOS","esq-cort","Cortina de vidro","m²",180,1250],
+ ["MARCENARIA","mar-mdf","Marcenaria sob medida em MDF","m²",380,1520],
+ ["MARCENARIA","mar-pain","Painel em MDF","m²",260,940],
+ ["MARCENARIA","mar-met","Estrutura em metalon pintado","m",95,145],
+ ["MARCENARIA","mar-mont","Montagem e instalação de móvel","m²",98,0],
+ ["ÁREA EXTERNA E PAISAGISMO","ext-perg","Pergolado em pré-moldado","m²",240,520],
+ ["ÁREA EXTERNA E PAISAGISMO","ext-brita","Preparo de base com brita","m²",38,65],
+ ["ÁREA EXTERNA E PAISAGISMO","ext-grama","Grama em placas","m²",28,38],
+ ["ÁREA EXTERNA E PAISAGISMO","ext-jard","Torneira e ponto de jardim","un",120,180],
+ ["ÁREA EXTERNA E PAISAGISMO","ext-gas","Casa de gás em alvenaria","un",850,620],
+ ["LIMPEZA E ENTREGA","fim-limp","Limpeza fina de obra","m²",22,6],
+ ["LIMPEZA E ENTREGA","fim-adm","Administração e acompanhamento de obra","mês",4500,0]
+].map(r=>({etapa:r[0],id:r[1],servico:r[2],un:r[3],mo:r[4],mat:r[5]}));
+
+/* --- três faixas de padrão -------------------------------------------------
+   A tabela acima é o médio padrão. Baixo e alto saem daí por fator: a mão de
+   obra varia menos que o material, porque o que encarece o alto padrão é
+   sobretudo o que se compra. Serviços que quase não mudam com o padrão
+   (caçamba, administração, limpeza) usam fator reduzido.                      */
+const PADROES={b:'Baixo',m:'Médio',a:'Alto'};
+const PADROES_LONGO={b:'Baixo padrão',m:'Médio padrão',a:'Alto padrão'};
+const FATOR={b:{mo:0.72,mat:0.55}, m:{mo:1,mat:1}, a:{mo:1.38,mat:2.05}};
+const FATOR_NEUTRO={b:{mo:0.90,mat:0.90}, m:{mo:1,mat:1}, a:{mo:1.15,mat:1.20}};
+const POUCO_SENSIVEL=new Set(['dem-cac','dem-prot','dem-louca','fim-adm','fim-limp','ele-inf','ar-frig','alv-cp','alv-reb']);
+function gerarFaixas(mo,mat,id){
+  const f = POUCO_SENSIVEL.has(id) ? FATOR_NEUTRO : FATOR;
+  const p={};
+  ['b','m','a'].forEach(k=>p[k]=[Math.round(mo*f[k].mo), Math.round(mat*f[k].mat)]);
+  return p;
+}
+CAT_PADRAO.forEach(c=>{ c.p = gerarFaixas(c.mo,c.mat,c.id); });
+function precoDe(c,pad){
+  const t=(c && c.p && c.p[pad]) || [c?c.mo:0, c?c.mat:0];
+  return {mo:t[0]||0, mat:t[1]||0};
+}
+/* garante faixas em catálogos gravados antes desta versão */
+function migrarCat(lista){
+  lista.forEach(c=>{ if(!c.p) c.p=gerarFaixas(c.mo||0,c.mat||0,c.id); });
+  return lista;
+}
+
+const ORDEM = ["PRELIMINARES E DEMOLIÇÕES","ALVENARIA E ESTRUTURA","INSTALAÇÕES HIDRÁULICAS","ELÉTRICA E LÓGICA",
+ "CLIMATIZAÇÃO","FORRO E PAREDES DE GESSO","REVESTIMENTO DE PISO","REVESTIMENTO DE PAREDE","PEDRAS E BANCADAS",
+ "PINTURA E TEXTURA","ESQUADRIAS, VIDROS E ESPELHOS","MARCENARIA","ÁREA EXTERNA E PAISAGISMO","LIMPEZA E ENTREGA"];
+
+/* ==========================================================
+   3. MODELOS DE ESCOPO
+   ========================================================== */
+const MODELOS = {
+  vazio:{nome:"Em branco", itens:[]},
+  banheiro:{nome:"Banheiro completo (4 m²)", area:4, itens:[
+    ["dem-rev","Retirada de revestimento de piso e parede","m²",22],
+    ["dem-louca","Retirada de louças e metais","un",4],
+    ["dem-cac","Caçamba de entulho","un",1],
+    ["hid-af","Pontos de água fria","un",5],
+    ["hid-aq","Pontos de água quente","un",3],
+    ["hid-esg","Pontos de esgoto","un",4],
+    ["alv-imp","Impermeabilização","m²",10],
+    ["alv-cp","Contrapiso de regularização","m²",4],
+    ["par-porc","Revestimento de parede","m²",18],
+    ["pis-porc","Assentamento de piso","m²",4],
+    ["pis-rej","Rejunte","m²",22],
+    ["ges-forro","Forro de gesso","m²",4],
+    ["ele-pt","Pontos elétricos","un",7],
+    ["hid-bacia","Instalação de bacia","un",1],
+    ["hid-cuba","Instalação de cuba","un",1],
+    ["hid-metal","Instalação de metais","un",4],
+    ["ped-gran","Bancada em pedra","m²",1.2],
+    ["esq-box","Box em vidro temperado","un",1],
+    ["esq-esp","Espelho","m²",1.5],
+    ["esq-pm","Porta","un",1],
+    ["pin-massa","Massa e pintura de forro","m²",4],
+    ["fim-limp","Limpeza fina","m²",4]]},
+  cozinha:{nome:"Cozinha completa (12 m²)", area:12, itens:[
+    ["dem-rev","Retirada de revestimento","m²",34],
+    ["dem-ban","Retirada de bancada","un",1],
+    ["dem-cac","Caçamba de entulho","un",2],
+    ["alv-elev","Alvenaria nova","m²",6],
+    ["alv-cp","Contrapiso","m²",12],
+    ["hid-af","Pontos de água fria","un",4],
+    ["hid-esg","Pontos de esgoto","un",3],
+    ["ele-pt","Pontos elétricos","un",18],
+    ["ele-fita","Fita de LED","m",8],
+    ["ges-forro","Forro de gesso","m²",12],
+    ["ges-sanca","Sanca","m",14],
+    ["pis-porcg","Assentamento de piso","m²",12],
+    ["par-porc","Revestimento de parede","m²",16],
+    ["ped-quartz","Bancada em pedra","m²",4],
+    ["hid-cuba","Instalação de cuba","un",1],
+    ["hid-metal","Instalação de metais","un",2],
+    ["mar-mdf","Marcenaria sob medida","m²",16],
+    ["pin-massa","Massa corrida","m²",30],
+    ["pin-latex","Pintura","m²",30],
+    ["fim-limp","Limpeza fina","m²",12]]},
+  apto:{nome:"Apartamento — reforma leve (70 m²)", area:70, itens:[
+    ["dem-rev","Retirada de piso existente","m²",70],
+    ["dem-forro","Retirada de forro","m²",30],
+    ["dem-cac","Caçambas de entulho","un",4],
+    ["alv-cp","Contrapiso de regularização","m²",70],
+    ["ele-pt","Pontos elétricos","un",70],
+    ["ele-qd","Quadro de distribuição","un",1],
+    ["ele-lum","Instalação de luminárias","un",30],
+    ["hid-af","Pontos de água","un",10],
+    ["hid-esg","Pontos de esgoto","un",8],
+    ["ges-forro","Forro de gesso","m²",60],
+    ["ges-sanca","Sanca","m",55],
+    ["pis-porcg","Assentamento de porcelanato","m²",70],
+    ["pis-mat","Porcelanato (material)","m²",77],
+    ["pis-rod","Rodapé","m",90],
+    ["par-porc","Revestimento de parede em áreas molhadas","m²",40],
+    ["pin-massa","Massa corrida","m²",190],
+    ["pin-latex","Pintura látex","m²",190],
+    ["pin-forro","Pintura de forro","m²",60],
+    ["esq-pm","Portas de madeira","un",5],
+    ["mar-mdf","Marcenaria sob medida","m²",22],
+    ["fim-limp","Limpeza fina","m²",70],
+    ["fim-adm","Administração de obra","mês",2]]},
+  completa:{nome:"Casa — reforma completa (170 m²)", area:170, itens:[
+    ["dem-alv","Demolição de alvenaria","m²",26],["dem-rev","Retirada de revestimento","m²",132],
+    ["dem-cp","Demolição de contrapiso","m²",34],["dem-ban","Retirada de bancadas","un",4],
+    ["dem-forro","Retirada de forro","m²",58],["dem-cac","Caçambas de entulho","un",8],
+    ["dem-prot","Proteção de piso e vãos","m²",60],
+    ["alv-elev","Alvenaria nova","m²",42],["alv-pil","Pilares","m",14],["alv-laje","Piso/laje a construir","m²",18],
+    ["alv-reb","Reboco","m²",95],["alv-cp","Contrapiso","m²",112],["alv-imp","Impermeabilização","m²",48],
+    ["alv-base","Base em alvenaria","m",16],["alv-vao","Vãos a abrir","un",6],
+    ["hid-af","Pontos de água fria","un",22],["hid-aq","Pontos de água quente","un",10],
+    ["hid-esg","Pontos de esgoto","un",16],["hid-bacia","Bacias sanitárias","un",4],
+    ["hid-cuba","Cubas","un",7],["hid-metal","Metais","un",18],["hid-hidro","Hidromassagem","un",1],
+    ["ele-pt","Pontos elétricos","un",165],["ele-rj","Pontos de rede","un",8],["ele-qd","Quadro de distribuição","un",1],
+    ["ele-inf","Infraestrutura","m",240],["ele-lum","Luminárias e spots","un",72],
+    ["ele-perf","Perfil de LED","m",34],["ele-fita","Fita de LED","m",68],
+    ["ar-cas","Cassete 4 vias","un",2],["ar-hw","Splits hi-wall","un",3],["ar-frig","Infra frigorígena","m",58],
+    ["ges-forro","Forro de gesso","m²",142],["ges-sanca","Sanca","m",118],["ges-drywall","Paredes de gesso","m²",34],
+    ["ges-cort","Rasgo para cortina","m",26],
+    ["pis-porc","Piso do pavimento superior","m²",55.73],["pis-porcg","Piso do térreo","m²",96.65],
+    ["pis-pedra","Pedra natural em piso","m²",44],["pis-mat","Porcelanato (material)","m²",168],
+    ["pis-rej","Rejunte","m²",196],["pis-rod","Rodapé","m",178],["pis-sol","Soleiras e peitoris","m",24],
+    ["pis-dren","Piso drenante","m²",26],["pis-deck","Deck","m²",13],
+    ["par-porc","Revestimento de parede","m²",62],["par-pedra","Parede em pedra","m²",28],
+    ["par-pain","Muxarabi e ripados","m²",16],
+    ["ped-quartz","Quartzito","m²",11.5],["ped-trav","Travertino","m²",22],["ped-imp","Impermeabilização de pedra","m²",22],
+    ["ped-frente","Frentes de bancada","m",18],["ped-prat","Prateleiras em pedra","m",9],
+    ["pin-massa","Massa corrida","m²",372],["pin-latex","Pintura látex","m²",372],["pin-forro","Pintura de forro","m²",142],
+    ["pin-text","Textura decorativa","m²",64],["pin-esq","Pintura de esquadrias","m²",48],["pin-ext","Pintura externa","m²",110],
+    ["esq-pm","Portas de madeira","un",9],["esq-pa","Portas de alumínio","un",5],["esq-jan","Janelas","un",7],
+    ["esq-gc","Guarda-corpo","m",5.38],["esq-box","Box","un",3],["esq-esp","Espelhos","m²",14],["esq-cort","Cortina de vidro","m²",12],
+    ["mar-mdf","Marcenaria sob medida","m²",58],["mar-pain","Painéis em MDF","m²",26],
+    ["mar-met","Estrutura em metalon","m",32],["mar-mont","Montagem","m²",84],
+    ["ext-perg","Pergolado","m²",20],["ext-brita","Base com brita","m²",26],["ext-grama","Área gramada","m²",30],
+    ["ext-jard","Torneiras de jardim","un",3],["ext-gas","Casa de gás","un",1],
+    ["fim-limp","Limpeza fina","m²",246],["fim-adm","Administração de obra","mês",5]]}
+};
+
+/* ==========================================================
+   4. ESTADO
+   ========================================================== */
+let catalogo=[], indice=[], obra=null, colapsadas=new Set();
+let tela='obras', soMO=false, uid=1, padCat='m';
+
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+function nn(v){ if(typeof v==='number')return v; if(v==null)return 0;
+  let s=String(v).trim().replace(/[^\d,.\-]/g,'');
+  if(s.includes(',')&&s.includes('.'))s=s.replace(/\./g,'').replace(',','.');
+  else if(s.includes(','))s=s.replace(',','.');
+  const n=parseFloat(s); return isNaN(n)?0:n; }
+const brl=n=>'R$ '+Math.round(n||0).toLocaleString('pt-BR');
+const br2=n=>(n||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+const qf=n=>(n||0).toLocaleString('pt-BR',{maximumFractionDigits:2});
+const esc=s=>String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
+const norm=s=>(s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9 ]/g,' ').replace(/\s+/g,' ').trim();
+function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('on');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('on'),2200);}
+
+/* ==========================================================
+   5. PERSISTÊNCIA
+   ========================================================== */
+async function carregarTudo(){
+  const c2=await store.get('cat:v2');
+  if(c2) catalogo = migrarCat(JSON.parse(c2));
+  else{
+    const c1=await store.get('cat:v1');
+    catalogo = migrarCat(c1 ? JSON.parse(c1) : CAT_PADRAO.map(x=>({...x, p:{...x.p}})));
+    await store.set('cat:v2', JSON.stringify(catalogo));
+  }
+  const i=await store.get('obras:index');
+  indice = i ? JSON.parse(i) : [];
+  const ult=await store.get('obra:ultima');
+  if(ult) await abrirObra(ult, true);
+}
+const salvarCat = ()=>store.set('cat:v2', JSON.stringify(catalogo));
+const salvarIndice = ()=>store.set('obras:index', JSON.stringify(indice));
+let tSave=null;
+function salvarObra(){
+  if(!obra) return;
+  clearTimeout(tSave);
+  tSave=setTimeout(async()=>{
+    obra.atualizado=Date.now();
+    const s=somas();
+    const e=indice.find(o=>o.id===obra.id);
+    if(e){ e.nome=obra.nome; e.cliente=obra.cliente; e.total=s.total; e.mo=s.mo; e.atualizado=obra.atualizado; }
+    await store.set('obra:'+obra.id, JSON.stringify(obra));
+    await salvarIndice();
+  },500);
+}
+async function abrirObra(id, silencioso){
+  const d=await store.get('obra:'+id);
+  if(!d){ if(!silencioso) toast('Obra não encontrada'); return; }
+  obra=JSON.parse(d);
+  obra.itens.forEach(i=>{ if(i.uid>=uid) uid=i.uid+1; });
+  await store.set('obra:ultima', id);
+  colapsadas=new Set();
+  if(!silencioso) irPara('orc');
+  renderTudo();
+}
+function novaObraDe(modeloKey, dados){
+  const m=MODELOS[modeloKey]||MODELOS.vazio;
+  const mapa=Object.fromEntries(catalogo.map(c=>[c.id,c]));
+  const id='o'+Date.now().toString(36);
+  const pad=dados.padrao||'m';
+  const itens=(m.itens||[]).map(r=>{
+    const c=mapa[r[0]]||{etapa:'GERAL',mo:0,mat:0};
+    const p=precoDe(c,pad);
+    return {uid:uid++,etapa:c.etapa,catId:r[0],desc:r[1],un:r[2],qtd:r[3],amb:'',
+            mo:p.mo,mat:p.mat,pad:'',origem:'modelo',edit:{}};
+  });
+  obra={id,nome:dados.nome,cliente:dados.cliente,endereco:dados.endereco,
+        area:dados.area||m.area||0,padrao:pad,bdi:0,margem:0,reserva:10,
+        criado:Date.now(),atualizado:Date.now(),itens};
+  indice.unshift({id,nome:obra.nome,cliente:obra.cliente,total:0,mo:0,atualizado:Date.now()});
+  salvarIndice(); store.set('obra:ultima',id); salvarObra();
+  colapsadas=new Set(); irPara('orc'); renderTudo();
+  toast('Obra criada');
+}
+
+/* ==========================================================
+   6. CÁLCULOS
+   ========================================================== */
+function somas(){
+  if(!obra) return {mo:0,mat:0,base:0,bdi:0,mg:0,res:0,total:0};
+  const mo=obra.itens.reduce((s,i)=>s+i.qtd*i.mo,0);
+  const mat=obra.itens.reduce((s,i)=>s+i.qtd*i.mat,0);
+  const base=mo+mat;
+  const bdi=base*(nn(obra.bdi)/100), mg=base*(nn(obra.margem)/100), res=base*(nn(obra.reserva)/100);
+  return {mo,mat,base,bdi,mg,res,total:base+bdi+mg+res};
+}
+function etapas(){
+  const s=[...new Set(obra.itens.map(i=>i.etapa))];
+  s.sort((a,b)=>{const ia=ORDEM.indexOf(a),ib=ORDEM.indexOf(b);
+    return (ia<0?999:ia)-(ib<0?999:ib)||a.localeCompare(b);});
+  return s;
+}
+
+/* ==========================================================
+   7. NAVEGAÇÃO
+   ========================================================== */
+function irPara(t){
+  tela=t;
+  $$('.screen').forEach(s=>s.classList.toggle('on', s.id==='sc-'+t));
+  $$('.nav button').forEach(b=>b.classList.toggle('on', b.dataset.sc===t));
+  $('#back').style.display = (t==='add'||t==='pdf')?'block':'none';
+  $('#totbar').style.display = (obra && t!=='obras' && t!=='precos')?'block':'none';
+  $('#topAct').style.display='none';
+  const tit=$('#topTit');
+  if(t==='obras'){ tit.innerHTML='Obras<span class="sub" id="topSub">'+indice.length+' orçamento'+(indice.length===1?'':'s')+'</span>'; }
+  else if(t==='precos'){ tit.innerHTML='Tabela de preços<span class="sub">'+PADROES_LONGO[padCat]+' · '+catalogo.length+' serviços</span>'; }
+  else if(t==='add'){ tit.innerHTML='Adicionar serviço<span class="sub">'+esc(obra?obra.nome:'')+'</span>'; }
+  else if(t==='pdf'){ tit.innerHTML='Ler projeto<span class="sub">'+esc(obra?obra.nome:'')+'</span>'; }
+  else if(obra){
+    tit.innerHTML=esc(obra.nome)+'<span class="sub">'+esc(obra.cliente||'sem cliente')+'</span>';
+    $('#topAct').style.display='block'; $('#topAct').textContent='Editar';
+    $('#topAct').onclick=abrirDadosObra;
+  } else tit.innerHTML='Nenhuma obra<span class="sub">Crie ou selecione uma obra</span>';
+  window.scrollTo(0,0);
+  if(t==='resumo') renderResumo();
+  if(t==='add') renderAdd();
+}
+$$('.nav button').forEach(b=>b.onclick=()=>{
+  if(b.dataset.sc!=='obras' && b.dataset.sc!=='precos' && !obra){ toast('Selecione uma obra'); return irPara('obras'); }
+  irPara(b.dataset.sc);
+});
+$('#back').onclick=()=>irPara('orc');
+$('#goPdf').onclick=()=>{ if(!obra) return toast('Abra uma obra'); irPara('pdf'); };
+$('#goAdd').onclick=()=>{ if(!obra) return toast('Abra uma obra'); irPara('add'); };
+
+/* ==========================================================
+   8. TELA OBRAS
+   ========================================================== */
+function renderObras(){
+  const b=norm($('#bObra').value), el=$('#listaObras');
+  const lista=indice.filter(o=>!b||norm(o.nome+' '+(o.cliente||'')).includes(b))
+                    .sort((x,y)=>y.atualizado-x.atualizado);
+  if(!lista.length){
+    el.innerHTML=`<div class="empty"><b>${indice.length?'Nada encontrado':'Nenhuma obra ainda'}</b>
+      ${indice.length?'Tente outro termo.':'Crie a primeira e comece a orçar.'}</div>`;
+    return;
+  }
+  el.innerHTML='';
+  lista.forEach(o=>{
+    const d=document.createElement('div'); d.className='obra';
+    d.innerHTML=`<div class="g">
+        <div class="nm">${esc(o.nome)}</div>
+        <div class="cl">${esc(o.cliente||'—')}</div>
+        <div class="vl">${brl(o.total||0)}</div>
+        <div class="mo">M.O. ${brl(o.mo||0)}${o.total?' · '+Math.round((o.mo||0)/o.total*100)+'%':''}</div>
+      </div><button class="kebab">⋮</button>`;
+    d.querySelector('.g').onclick=()=>abrirObra(o.id);
+    d.querySelector('.kebab').onclick=e=>{e.stopPropagation();menuObra(o);};
+    el.appendChild(d);
+  });
+}
+$('#bObra').oninput=renderObras;
+$('#novaObra').onclick=()=>abrirSheet(formNovaObra());
+
+function menuObra(o){
+  abrirMenu([
+    ['Abrir', ()=>abrirObra(o.id)],
+    ['Duplicar', async()=>{
+      const d=await store.get('obra:'+o.id); if(!d)return;
+      const c=JSON.parse(d); c.id='o'+Date.now().toString(36); c.nome=c.nome+' (cópia)';
+      c.criado=c.atualizado=Date.now();
+      await store.set('obra:'+c.id, JSON.stringify(c));
+      indice.unshift({id:c.id,nome:c.nome,cliente:c.cliente,total:o.total,mo:o.mo,atualizado:Date.now()});
+      await salvarIndice(); renderObras(); toast('Obra duplicada');
+    }],
+    ['Excluir', async()=>{
+      if(!confirm('Excluir "'+o.nome+'"? Não dá para desfazer.')) return;
+      await store.del('obra:'+o.id);
+      indice=indice.filter(x=>x.id!==o.id); await salvarIndice();
+      if(obra&&obra.id===o.id){ obra=null; await store.del('obra:ultima'); }
+      renderObras(); irPara('obras'); toast('Obra excluída');
+    }, true]
+  ]);
+}
+
+function formNovaObra(){
+  const opts=Object.entries(MODELOS).map(([k,m])=>`<option value="${k}">${m.nome}</option>`).join('');
+  return {titulo:'Nova obra', html:`
+    <div class="f"><label>Nome da obra</label><input id="n-nome" placeholder="Reforma apto 302"></div>
+    <div class="f"><label>Cliente</label><input id="n-cli" placeholder="Nome do cliente"></div>
+    <div class="f"><label>Endereço</label><input id="n-end" placeholder="Rua, bairro"></div>
+    <div class="f"><label>Área (m²)</label><input id="n-area" inputmode="decimal" placeholder="70"></div>
+    <div class="f"><label>Começar de um modelo</label><select id="n-mod">${opts}</select></div>
+    <div class="f"><label>Padrão do serviço</label>
+      <div class="segs" id="n-seg">
+        <button data-p="b">Baixo</button><button data-p="m" class="on">Médio</button><button data-p="a">Alto</button>
+      </div></div>
+    <button class="btn pri" id="n-ok">Criar obra</button>`,
+    onMount(){
+      let pad='m';
+      $$('#n-seg button').forEach(b=>b.onclick=()=>{
+        pad=b.dataset.p; $$('#n-seg button').forEach(x=>x.classList.toggle('on',x===b));
+      });
+      $('#n-ok').onclick=()=>{
+        const nome=$('#n-nome').value.trim()||'Obra sem nome';
+        novaObraDe($('#n-mod').value,{nome,cliente:$('#n-cli').value.trim(),padrao:pad,
+          endereco:$('#n-end').value.trim(),area:nn($('#n-area').value)});
+        fecharSheet(); renderObras();
+      };
+    }};
+}
+function abrirDadosObra(){
+  abrirSheet({titulo:'Dados da obra', html:`
+    <div class="f"><label>Nome da obra</label><input id="e-nome" value="${esc(obra.nome)}"></div>
+    <div class="f"><label>Cliente</label><input id="e-cli" value="${esc(obra.cliente||'')}"></div>
+    <div class="f"><label>Endereço</label><input id="e-end" value="${esc(obra.endereco||'')}"></div>
+    <div class="f"><label>Área (m²)</label><input id="e-area" inputmode="decimal" value="${obra.area||''}"></div>
+    <button class="btn pri" id="e-ok">Salvar</button>
+    <button class="btn gh sm" id="e-apl">Reaplicar tabela de preços</button>`,
+    onMount(){
+      $('#e-ok').onclick=()=>{
+        obra.nome=$('#e-nome').value.trim()||obra.nome;
+        obra.cliente=$('#e-cli').value.trim(); obra.endereco=$('#e-end').value.trim();
+        obra.area=nn($('#e-area').value);
+        salvarObra(); fecharSheet(); irPara(tela); renderTudo(); renderObras();
+      };
+      $('#e-apl').onclick=()=>{
+        let n=0; const mapa=Object.fromEntries(catalogo.map(c=>[c.id,c]));
+        const pO=obra.padrao||'m';
+        obra.itens.forEach(i=>{ const c=i.catId?mapa[i.catId]:acharPreco(i.desc,i.un);
+          if(c){ const p=precoDe(c,i.pad||pO); i.mo=p.mo; i.mat=p.mat; i.catId=c.id; i.edit={}; n++; } });
+        salvarObra(); fecharSheet(); renderTudo(); toast(n+' itens atualizados');
+      };
+    }});
+}
+
+/* ==========================================================
+   9. TELA ORÇAMENTO
+   ========================================================== */
+/* Total simulado em cada faixa, sem alterar o orçamento.
+   Item com padrão próprio mantém o dele; item sem preço de tabela fica como está. */
+function totalNoPadrao(pad){
+  if(!obra) return 0;
+  const mapa=Object.fromEntries(catalogo.map(c=>[c.id,c]));
+  let mo=0,mat=0;
+  obra.itens.forEach(i=>{
+    const c=i.catId?mapa[i.catId]:null;
+    const manual = i.edit && (i.edit.mo||i.edit.mat);
+    const p = (c && !manual) ? precoDe(c, i.pad||pad) : {mo:i.mo,mat:i.mat};
+    mo+=i.qtd*p.mo; mat+=i.qtd*p.mat;
+  });
+  const base=mo+mat;
+  return base*(1+(nn(obra.bdi)+nn(obra.margem)+nn(obra.reserva))/100);
+}
+function aplicarPadrao(pad){
+  if(!obra) return;
+  const mapa=Object.fromEntries(catalogo.map(c=>[c.id,c]));
+  let n=0, mantidos=0;
+  obra.itens.forEach(i=>{
+    if(i.pad) return;                                  // item com padrão próprio
+    if(i.edit && (i.edit.mo||i.edit.mat)){ mantidos++; return; }  // preço digitado à mão
+    const c=i.catId?mapa[i.catId]:null; if(!c) return;
+    const p=precoDe(c,pad); i.mo=p.mo; i.mat=p.mat; n++;
+  });
+  obra.padrao=pad; salvarObra(); renderTudo();
+  toast(n+' itens no '+PADROES_LONGO[pad].toLowerCase()+(mantidos?' · '+mantidos+' com preço próprio':''));
+}
+function renderSegPad(){
+  const p=obra?(obra.padrao||'m'):'m';
+  $$('#segPad button').forEach(b=>b.classList.toggle('on', b.dataset.p===p));
+  if(obra) ['b','m','a'].forEach(k=>{ const e=$('#px-'+k); if(e) e.textContent=brl(totalNoPadrao(k)); });
+}
+$$('#segPad button').forEach(b=>b.onclick=()=>{
+  if(!obra) return toast('Abra uma obra');
+  if(b.dataset.p===(obra.padrao||'m')) return;
+  aplicarPadrao(b.dataset.p);
+});
+
+function renderItens(){
+  const el=$('#listaItens');
+  renderSegPad();
+  if(!obra){ el.innerHTML='<div class="empty"><b>Nenhuma obra aberta</b>Vá em Obras e selecione uma.</div>'; return; }
+  const b=norm($('#bItem').value);
+  el.innerHTML='';
+  let algum=false;
+  etapas().forEach(et=>{
+    let lista=obra.itens.filter(i=>i.etapa===et);
+    if(b) lista=lista.filter(i=>norm(i.desc+' '+(i.amb||'')).includes(b));
+    if(soMO) lista=lista.filter(i=>i.mo>0);
+    if(!lista.length) return;
+    algum=true;
+    const mo=lista.reduce((s,i)=>s+i.qtd*i.mo,0), tt=lista.reduce((s,i)=>s+i.qtd*(i.mo+i.mat),0);
+    const col=colapsadas.has(et);
+    const h=document.createElement('div'); h.className='etapa';
+    h.innerHTML=`<span>${col?'▸':'▾'}</span><span class="ct">${et}</span><span class="vv">${brl(tt)}</span>`;
+    h.onclick=()=>{col?colapsadas.delete(et):colapsadas.add(et);renderItens();};
+    el.appendChild(h);
+    if(col) return;
+    lista.forEach(it=>el.appendChild(linhaItem(it)));
+    const a=document.createElement('div'); a.className='addrow'; a.textContent='+ item nesta etapa';
+    a.onclick=()=>editarItem(null,et);
+    el.appendChild(a);
+  });
+  if(!algum) el.innerHTML='<div class="empty"><b>Sem itens</b>Use "+ Nova etapa" ou leia um PDF do projeto.</div>';
+}
+function linhaItem(it){
+  const tm=it.qtd*it.mo, tt=it.qtd*(it.mo+it.mat);
+  const d=document.createElement('div');
+  d.className='it'+(Object.keys(it.edit||{}).length?' rev':'');
+  d.innerHTML=`
+    <div class="t">${esc(it.desc)}${it.pad?`<span class="padtag ${it.pad}">${PADROES[it.pad]}</span>`:''}</div>
+    <div class="s">${qf(it.qtd)} ${esc(it.un)} · <em>MO ${brl(it.mo)}</em> · Mat ${brl(it.mat)}</div>
+    ${it.amb?`<div class="amb">${esc(it.amb)}</div>`:''}
+    <div class="v">${brl(tt)}</div>
+    <div class="track"><i style="width:${tt?Math.min(100,tm/tt*100):0}%"></i></div>`;
+  d.onclick=()=>editarItem(it);
+  return d;
+}
+$('#bItem').oninput=renderItens;
+$('#toggleMO').onclick=()=>{soMO=!soMO;$('#toggleMO').textContent=soMO?'Ver tudo':'Só mão de obra';renderItens();};
+$('#novaEtapa').onclick=()=>{
+  if(!obra) return toast('Abra uma obra');
+  const n=prompt('Nome da etapa:'); if(!n) return;
+  editarItem(null, n.toUpperCase());
+};
+
+function editarItem(it, etapaPadrao){
+  const novo=!it;
+  const d = it || {uid:uid++, etapa:etapaPadrao||'GERAL', catId:'', desc:'', un:'m²', qtd:0, amb:'', mo:0, mat:0, pad:'', origem:'manual', edit:{}};
+  const padObra = obra.padrao||'m';
+  abrirSheet({titulo: novo?'Novo serviço':'Editar serviço', html:`
+    <div class="f"><label>Serviço</label><input id="i-desc" value="${esc(d.desc)}" placeholder="Digite ou escolha da tabela"></div>
+    <div class="sugg" id="i-sugg"></div>
+    <div class="f"><label>Etapa</label><input id="i-et" value="${esc(d.etapa)}"></div>
+    <div class="f"><label>Ambiente</label><input id="i-amb" value="${esc(d.amb||'')}" placeholder="Cozinha, suíte 01…"></div>
+    <div class="f3">
+      <div class="f" style="margin:0"><label>Quantidade</label><input id="i-qtd" class="money" inputmode="decimal" value="${d.qtd?qf(d.qtd):''}"></div>
+      <div class="f" style="margin:0"><label>Un</label><input id="i-un" value="${esc(d.un)}"></div>
+    </div>
+    <div class="f"><label>Padrão deste serviço</label>
+      <div class="segs" id="i-seg">
+        <button data-p="">Da obra<span class="px">${PADROES[padObra]}</span></button>
+        <button data-p="b">Baixo</button><button data-p="m">Médio</button><button data-p="a">Alto</button>
+      </div></div>
+    <div class="f3" style="grid-template-columns:1fr 1fr">
+      <div class="f" style="margin:0"><label>Mão de obra un.</label><input id="i-mo" class="money mo" inputmode="decimal" value="${d.mo?br2(d.mo):''}"></div>
+      <div class="f" style="margin:0"><label>Material un.</label><input id="i-mat" class="money" inputmode="decimal" value="${d.mat?br2(d.mat):''}"></div>
+    </div>
+    <div class="calcline"><span>Total do item</span><b id="i-tot">R$ 0</b></div>
+    <div class="split"><div><span>Mão de obra</span><b id="i-smo">R$ 0</b></div><div><span>Material</span><b id="i-smat">R$ 0</b></div></div>
+    <button class="btn pri" id="i-ok">${novo?'Adicionar':'Salvar'}</button>
+    ${novo?'':'<button class="btn gh sm" id="i-dup">Duplicar</button><button class="btn gh sm" id="i-del" style="color:var(--stamp);border-color:var(--stamp)">Excluir item</button>'}`,
+    onMount(){
+      const recalc=()=>{
+        const q=nn($('#i-qtd').value), m=nn($('#i-mo').value), x=nn($('#i-mat').value);
+        $('#i-tot').textContent=brl(q*(m+x));
+        $('#i-smo').textContent=brl(q*m); $('#i-smat').textContent=brl(q*x);
+      };
+      ['#i-qtd','#i-mo','#i-mat'].forEach(s=>$(s).addEventListener('input',recalc));
+      recalc();
+
+      const sugg=$('#i-sugg');
+      const mostrar=()=>{
+        const q=norm($('#i-desc').value);
+        const l=(q?catalogo.filter(c=>norm(c.servico).includes(q)):catalogo).slice(0,6);
+        sugg.innerHTML='';
+        l.forEach(c=>{
+          const b=document.createElement('button');
+          b.textContent=c.servico+' · '+brl(c.mo)+'/'+c.un;
+          b.onclick=()=>{
+            $('#i-desc').value=c.servico; $('#i-et').value=c.etapa; $('#i-un').value=c.un;
+            $('#i-mo').value=br2(c.mo); $('#i-mat').value=br2(c.mat); d.catId=c.id;
+            recalc(); sugg.innerHTML='';
+          };
+          sugg.appendChild(b);
+        });
+      };
+      $('#i-desc').addEventListener('input',mostrar); mostrar();
+
+      let padItem = d.pad||'';
+      const marcarSeg=()=>$$('#i-seg button').forEach(b=>b.classList.toggle('on', b.dataset.p===padItem));
+      marcarSeg();
+      $$('#i-seg button').forEach(b=>b.onclick=()=>{
+        padItem=b.dataset.p; marcarSeg();
+        const c = d.catId ? catalogo.find(x=>x.id===d.catId) : acharPreco($('#i-desc').value,$('#i-un').value);
+        if(c){ const p=precoDe(c, padItem||padObra);
+          $('#i-mo').value=br2(p.mo); $('#i-mat').value=br2(p.mat); recalc(); }
+        else toast('Serviço fora da tabela — digite os valores');
+      });
+
+      $('#i-ok').onclick=()=>{
+        d.desc=$('#i-desc').value.trim()||'Serviço'; d.etapa=$('#i-et').value.trim().toUpperCase()||'GERAL';
+        d.amb=$('#i-amb').value.trim(); d.un=$('#i-un').value.trim()||'un';
+        const q=nn($('#i-qtd').value), m=nn($('#i-mo').value), x=nn($('#i-mat').value);
+        const c = d.catId ? catalogo.find(x=>x.id===d.catId) : null;
+        const daTabela = c ? precoDe(c, padItem||padObra) : null;
+        if(!novo){
+          // só marca como preço próprio se destoar do que a tabela daria naquela faixa
+          if(!daTabela || m!==daTabela.mo) { if(m!==d.mo) d.edit.mo=true; }  else delete d.edit.mo;
+          if(!daTabela || x!==daTabela.mat){ if(x!==d.mat) d.edit.mat=true; } else delete d.edit.mat;
+          if(q!==d.qtd) d.edit.qtd=true;
+        }
+        d.pad=padItem; d.qtd=q; d.mo=m; d.mat=x;
+        if(novo) obra.itens.push(d);
+        salvarObra(); fecharSheet(); renderTudo();
+      };
+      if(!novo){
+        $('#i-dup').onclick=()=>{
+          const i=obra.itens.findIndex(x=>x.uid===d.uid);
+          obra.itens.splice(i+1,0,{...d,uid:uid++,edit:{...d.edit}});
+          salvarObra(); fecharSheet(); renderTudo(); toast('Item duplicado');
+        };
+        $('#i-del').onclick=()=>{
+          obra.itens=obra.itens.filter(x=>x.uid!==d.uid);
+          salvarObra(); fecharSheet(); renderTudo(); toast('Item excluído');
+        };
+      }
+    }});
+}
+
+/* ==========================================================
+   10. TELA PREÇOS
+   ========================================================== */
+function renderCat(){
+  const b=norm($('#bCat').value), el=$('#listaCat');
+  el.innerHTML='';
+  let et=null;
+  catalogo.filter(c=>!b||norm(c.servico+' '+c.etapa).includes(b)).forEach(c=>{
+    if(c.etapa!==et){ et=c.etapa;
+      const h=document.createElement('div'); h.className='etapa'; h.innerHTML=`<span class="ct">${esc(et)}</span>`;
+      el.appendChild(h); }
+    const p=precoDe(c,padCat);
+    const d=document.createElement('div'); d.className='cat';
+    d.innerHTML=`<div class="g"><div class="t">${esc(c.servico)}</div><div class="u">por ${esc(c.un)}</div></div>
+      <div class="p"><b>${brl(p.mo)}</b><small>mat ${brl(p.mat)}</small></div>`;
+    d.onclick=()=>editarCat(c);
+    el.appendChild(d);
+  });
+}
+$('#bCat').oninput=renderCat;
+$$('#segCat button').forEach(b=>b.onclick=()=>{
+  padCat=b.dataset.p;
+  $$('#segCat button').forEach(x=>x.classList.toggle('on',x===b));
+  renderCat();
+  $('#topTit').innerHTML='Tabela de preços<span class="sub">'+PADROES_LONGO[padCat]+' · '+catalogo.length+' serviços</span>';
+});
+function editarCat(c){
+  const novo=!c;
+  const d=c||{etapa:'GERAL',id:'c'+Date.now().toString(36),servico:'',un:'m²',mo:0,mat:0,p:{b:[0,0],m:[0,0],a:[0,0]}};
+  if(!d.p) d.p=gerarFaixas(d.mo||0,d.mat||0,d.id);
+  const faixa=(k,i)=>br2((d.p[k]||[0,0])[i]||0);
+  abrirSheet({titulo:novo?'Novo serviço na tabela':'Editar preço', html:`
+    <div class="f"><label>Serviço</label><input id="c-s" value="${esc(d.servico)}"></div>
+    <div class="f3"><div class="f" style="margin:0"><label>Etapa</label><input id="c-e" value="${esc(d.etapa)}"></div>
+      <div class="f" style="margin:0"><label>Un</label><input id="c-u" value="${esc(d.un)}"></div></div>
+    <div class="tiers">
+      <div class="tr hd"><span class="lb">Padrão</span><span>Mão de obra</span><span>Material</span></div>
+      <div class="tr"><span class="lb">Baixo</span>
+        <input id="c-b-mo" class="mo" inputmode="decimal" value="${faixa('b',0)}">
+        <input id="c-b-mat" inputmode="decimal" value="${faixa('b',1)}"></div>
+      <div class="tr"><span class="lb">Médio</span>
+        <input id="c-m-mo" class="mo" inputmode="decimal" value="${faixa('m',0)}">
+        <input id="c-m-mat" inputmode="decimal" value="${faixa('m',1)}"></div>
+      <div class="tr"><span class="lb">Alto</span>
+        <input id="c-a-mo" class="mo" inputmode="decimal" value="${faixa('a',0)}">
+        <input id="c-a-mat" inputmode="decimal" value="${faixa('a',1)}"></div>
+    </div>
+    <button class="btn gh sm" id="c-auto">Preencher baixo e alto pelo médio</button>
+    <button class="btn pri" id="c-ok">Salvar</button>
+    ${novo?'':'<button class="btn gh sm" id="c-del" style="color:var(--stamp);border-color:var(--stamp)">Excluir da tabela</button>'}`,
+    onMount(){
+      $('#c-auto').onclick=()=>{
+        const g=gerarFaixas(nn($('#c-m-mo').value), nn($('#c-m-mat').value), d.id);
+        $('#c-b-mo').value=br2(g.b[0]); $('#c-b-mat').value=br2(g.b[1]);
+        $('#c-a-mo').value=br2(g.a[0]); $('#c-a-mat').value=br2(g.a[1]);
+      };
+      $('#c-ok').onclick=async()=>{
+        d.servico=$('#c-s').value.trim()||'Serviço'; d.etapa=$('#c-e').value.trim().toUpperCase()||'GERAL';
+        d.un=$('#c-u').value.trim()||'un';
+        d.p={ b:[nn($('#c-b-mo').value),nn($('#c-b-mat').value)],
+              m:[nn($('#c-m-mo').value),nn($('#c-m-mat').value)],
+              a:[nn($('#c-a-mo').value),nn($('#c-a-mat').value)] };
+        d.mo=d.p.m[0]; d.mat=d.p.m[1];
+        if(novo) catalogo.unshift(d);
+        await salvarCat(); fecharSheet(); renderCat(); toast('Preço salvo nas três faixas');
+      };
+      if(!novo) $('#c-del').onclick=async()=>{
+        catalogo=catalogo.filter(x=>x!==d); await salvarCat(); fecharSheet(); renderCat(); toast('Removido');
+      };
+    }});
+}
+$('#addCat').onclick=()=>editarCat(null);
+$('#reajCat').onclick=async()=>{
+  const p=prompt('Reajustar as três faixas em quantos %? (negativo reduz)','8'); if(p===null)return;
+  const f=1+nn(p)/100, r=v=>Math.round(v*f*100)/100;
+  catalogo.forEach(c=>{
+    if(!c.p) c.p=gerarFaixas(c.mo||0,c.mat||0,c.id);
+    ['b','m','a'].forEach(k=>c.p[k]=[r(c.p[k][0]),r(c.p[k][1])]);
+    c.mo=c.p.m[0]; c.mat=c.p.m[1];
+  });
+  await salvarCat(); renderCat(); toast('Três faixas reajustadas');
+};
+$('#resetCat').onclick=async()=>{
+  if(!confirm('Restaurar a tabela padrão? Seus preços serão perdidos.'))return;
+  catalogo=CAT_PADRAO.map(c=>({...c,p:{b:[...c.p.b],m:[...c.p.m],a:[...c.p.a]}}));
+  await salvarCat(); renderCat(); toast('Tabela restaurada');
+};
+
+/* ==========================================================
+   11. TELA RESUMO
+   ========================================================== */
+function renderResumo(){
+  if(!obra) return;
+  const s=somas(), a=nn(obra.area)||1;
+  $('#bdi').value=obra.bdi||0; $('#margem').value=obra.margem||0; $('#reserva').value=obra.reserva||0;
+  $('#cards').innerHTML=`
+    <div class="card hl big full"><span>Mão de obra</span><b>${brl(s.mo)}</b>
+      <small>${s.base?Math.round(s.mo/s.base*100):0}% do custo direto · ${brl(s.mo/a)}/m²</small></div>
+    <div class="card"><span>Material</span><b>${brl(s.mat)}</b><small>${brl(s.mat/a)}/m²</small></div>
+    <div class="card"><span>Custo direto</span><b>${brl(s.base)}</b><small>sem acréscimos</small></div>
+    <div class="card"><span>Adm. + margem</span><b>${brl(s.bdi+s.mg)}</b><small>reserva ${brl(s.res)}</small></div>
+    <div class="card"><span>Por m²</span><b>${brl(s.total/a)}</b><small>${qf(a)} m²</small></div>
+    <div class="card big full"><span>Total ao cliente</span><b>${brl(s.total)}</b>
+      <small>${obra.cliente||'—'}</small></div>`;
+  const atual=obra.padrao||'m';
+  const cmp=$('#cmpPad');
+  cmp.innerHTML=['b','m','a'].map(k=>{
+    const v=totalNoPadrao(k);
+    const dif=s.total?Math.round((v-s.total)/s.total*100):0;
+    return `<div class="${k===atual?'on':''}" data-p="${k}"><span>${PADROES_LONGO[k]}</span>
+      <b>${brl(v)}</b><small>${k===atual?'atual':(dif>0?'+':'')+dif+'%'}</small></div>`;
+  }).join('');
+  cmp.querySelectorAll('div').forEach(d=>d.onclick=()=>{
+    if(d.dataset.p!==(obra.padrao||'m')) aplicarPadrao(d.dataset.p);
+  });
+
+  const t=s.total||1;
+  $('#barra').innerHTML=`<i style="background:var(--marker);width:${s.mo/t*100}%"></i>
+    <i style="background:var(--ink3);width:${s.mat/t*100}%"></i>
+    <i style="background:var(--stamp);width:${(s.bdi+s.mg+s.res)/t*100}%"></i>`;
+
+  const el=$('#listaEtapas'); el.innerHTML='';
+  const linhas=etapas().map(et=>{
+    const l=obra.itens.filter(i=>i.etapa===et);
+    const mo=l.reduce((x,i)=>x+i.qtd*i.mo,0), mat=l.reduce((x,i)=>x+i.qtd*i.mat,0);
+    return {et,mo,mat,tot:mo+mat};
+  }).sort((x,y)=>y.tot-x.tot);
+  const max=Math.max(...linhas.map(r=>r.tot),1);
+  linhas.forEach(r=>{
+    const d=document.createElement('div'); d.className='et-l';
+    d.innerHTML=`<div class="r"><span>${esc(r.et)}</span><b>${brl(r.tot)}</b></div>
+      <div class="mb"><i style="width:${r.tot/max*100}%"></i></div>
+      <div class="sm">MO ${brl(r.mo)} · Mat ${brl(r.mat)} · ${s.base?(r.tot/s.base*100).toFixed(1):0}% do total</div>`;
+    el.appendChild(d);
+  });
+}
+['bdi','margem','reserva'].forEach(k=>$('#'+k).addEventListener('input',()=>{
+  if(!obra)return; obra[k]=nn($('#'+k).value); salvarObra(); renderResumo(); atualizarBarra();
+}));
+
+function atualizarBarra(){
+  const s=somas();
+  $('#t-mo').textContent=brl(s.mo); $('#t-mat').textContent=brl(s.mat); $('#t-tot').textContent=brl(s.total);
+}
+function renderTudo(){ renderItens(); renderCat(); atualizarBarra(); if(tela==='resumo')renderResumo(); renderObras(); }
+
+/* ==========================================================
+   12. ADICIONAR SERVIÇOS A PARTIR DA TABELA
+   ========================================================== */
+function renderAdd(){
+  const el=$('#listaAdd'); if(!el) return;
+  if(!obra){ el.innerHTML='<div class="empty"><b>Nenhuma obra aberta</b>Vá em Obras e selecione uma.</div>'; return; }
+  const pO=obra.padrao||'m';
+  const inf=$('#addInfo');
+  if(inf) inf.innerHTML='Preços do <b>'+PADROES_LONGO[pO].toLowerCase()+'</b>. Toque no serviço para lançar a quantidade.';
+  const b=norm($('#bAdd').value);
+  const jaTem=new Set(obra.itens.map(i=>i.catId).filter(Boolean));
+  el.innerHTML='';
+  let et=null, achou=false;
+  catalogo.filter(c=>!b||norm(c.servico+' '+c.etapa).includes(b)).forEach(c=>{
+    achou=true;
+    if(c.etapa!==et){ et=c.etapa;
+      const hh=document.createElement('div'); hh.className='etapa';
+      hh.innerHTML='<span class="ct">'+esc(et)+'</span>'; el.appendChild(hh); }
+    const p=precoDe(c,pO);
+    const d=document.createElement('div'); d.className='cat';
+    d.innerHTML='<div class="g"><div class="t">'+esc(c.servico)+
+      (jaTem.has(c.id)?'<span class="padtag m">no orçamento</span>':'')+
+      '</div><div class="u">por '+esc(c.un)+'</div></div>'+
+      '<div class="p"><b>'+brl(p.mo)+'</b><small>mat '+brl(p.mat)+'</small></div>';
+    d.onclick=()=>lancar(c);
+    el.appendChild(d);
+  });
+  if(!achou) el.innerHTML='<div class="empty"><b>Nada encontrado</b>Cadastre o serviço em Preços.</div>';
+}
+const _bAdd=$('#bAdd'); if(_bAdd) _bAdd.oninput=renderAdd;
+
+/* Lança um serviço da tabela no orçamento, pedindo só a quantidade. */
+function lancar(c){
+  const pO=obra.padrao||'m';
+  abrirSheet({titulo:'Lançar serviço', html:`
+    <div class="f"><label>Serviço</label>
+      <div style="font-size:15px;line-height:1.35">${esc(c.servico)}</div>
+      <div class="hint" style="margin-top:3px">${esc(c.etapa)} · por ${esc(c.un)}</div></div>
+    <div class="f"><label>Padrão</label>
+      <div class="segs" id="l-seg">
+        <button data-p="">Da obra<span class="px">${PADROES[pO]}</span></button>
+        <button data-p="b">Baixo</button><button data-p="m">Médio</button><button data-p="a">Alto</button>
+      </div></div>
+    <div class="f3">
+      <div class="f" style="margin:0"><label>Quantidade (${esc(c.un)})</label>
+        <input id="l-qtd" class="money" inputmode="decimal" placeholder="0"></div>
+      <div class="f" style="margin:0"><label>Un</label><input id="l-un" value="${esc(c.un)}"></div>
+    </div>
+    <div class="f"><label>Ambiente (opcional)</label><input id="l-amb" placeholder="Cozinha, suíte 01…"></div>
+    <div class="split">
+      <div><span>Mão de obra un.</span><b id="l-mo">R$ 0</b></div>
+      <div><span>Material un.</span><b id="l-mat">R$ 0</b></div>
+    </div>
+    <div class="calcline"><span>Total do item</span><b id="l-tot">R$ 0</b></div>
+    <button class="btn pri" id="l-ok">Adicionar ao orçamento</button>`,
+    onMount(){
+      let pad='';
+      const recalc=()=>{
+        const p=precoDe(c,pad||pO), q=nn($('#l-qtd').value);
+        $('#l-mo').textContent=brl(p.mo); $('#l-mat').textContent=brl(p.mat);
+        $('#l-tot').textContent=brl(q*(p.mo+p.mat));
+      };
+      const marcar=()=>$$('#l-seg button').forEach(b=>b.classList.toggle('on',b.dataset.p===pad));
+      $$('#l-seg button').forEach(b=>b.onclick=()=>{pad=b.dataset.p;marcar();recalc();});
+      marcar(); recalc();
+      $('#l-qtd').addEventListener('input',recalc);
+      setTimeout(()=>{const q=$('#l-qtd'); if(q) q.focus();},120);
+      $('#l-ok').onclick=()=>{
+        const q=nn($('#l-qtd').value);
+        if(!q) return toast('Informe a quantidade');
+        const p=precoDe(c,pad||pO);
+        const ex=obra.itens.find(i=>i.catId===c.id && (i.pad||'')===pad);
+        if(ex){ ex.qtd+=q; toast('Quantidade somada ao item existente'); }
+        else obra.itens.push({uid:uid++,etapa:c.etapa,catId:c.id,desc:c.servico,un:$('#l-un').value.trim()||c.un,
+          qtd:q,amb:$('#l-amb').value.trim(),mo:p.mo,mat:p.mat,pad,origem:'tabela',edit:{}});
+        salvarObra(); fecharSheet(); renderTudo(); renderAdd();
+        if(!ex) toast('Serviço adicionado');
+      };
+    }});
+}
+
+
+/* ==========================================================
+   12b. LEITURA DE PROJETO — extração local, sem rede
+   --------------------------------------------------------
+   A pdf.js devolve o texto das pranchas. Daí saem os ambientes
+   (nome + A=00.00m²) por expressão regular, e os serviços são
+   calculados por regra a partir da área. Nada é adivinhado:
+   toda quantidade tem fórmula, e o construtor confere antes.
+   ========================================================== */
+if(window.pdfjsLib) pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+let arquivos=[], ambientes=[], propostas=[], achadosDoc={};
+
+function renderArq(){
+  const el=$('#fList'); el.innerHTML='';
+  arquivos.forEach((f,i)=>{
+    const d=document.createElement('div'); d.className='frow';
+    d.innerHTML='<span class="n">'+esc(f.name)+'</span><span class="m">'+(f.size/1048576).toFixed(1)+' MB</span><button>✕</button>';
+    d.querySelector('button').onclick=()=>{arquivos.splice(i,1);renderArq();};
+    el.appendChild(d);
+  });
+  $('#btnLer').disabled=!arquivos.length;
+}
+$('#drop').onclick=()=>$('#fInput').click();
+$('#drop').ondragover=e=>{e.preventDefault();$('#drop').classList.add('over');};
+$('#drop').ondragleave=()=>$('#drop').classList.remove('over');
+$('#drop').ondrop=e=>{e.preventDefault();$('#drop').classList.remove('over');
+  [...e.dataTransfer.files].forEach(f=>{if(/pdf/i.test(f.type+f.name))arquivos.push(f);});renderArq();};
+$('#fInput').onchange=e=>{[...e.target.files].forEach(f=>arquivos.push(f));e.target.value='';renderArq();};
+
+/* --- extração de texto --------------------------------------------------- */
+async function textoDoPDF(file, aoAvancar){
+  const doc=await pdfjsLib.getDocument({data:await file.arrayBuffer()}).promise;
+  let todo='';
+  for(let p=1;p<=doc.numPages;p++){
+    const pg=await doc.getPage(p), tc=await pg.getTextContent();
+    let last=null, t='';
+    tc.items.forEach(i=>{const y=i.transform[5];
+      if(last!==null&&Math.abs(y-last)>3) t+='\n'; t+=i.str+' '; last=y;});
+    todo+='\n'+t;
+    if(aoAvancar) aoAvancar(p,doc.numPages);
+  }
+  return todo;
+}
+
+/* --- ambientes ----------------------------------------------------------- */
+const RE_AREA=/([A-ZÁÂÃÉÊÍÓÔÕÚÇ][A-ZÁÂÃÉÊÍÓÔÕÚÇ0-9º\/\.\- ]{2,44}?)[\s\n]*A\s*=\s*([\d]+[.,][\d]+)\s*m/g;
+/* Vocabulário de ambientes: o nome precisa começar por uma dessas palavras.
+   Sem isso, anotações da prancha ("PONTO DE GÁS", "RODAPÉ") viram ambiente. */
+const VOCAB=/^(sala|quarto|suite|dormitorio|wc|banheiro|lavabo|cozinha|copa|area|varanda|sacada|terraco|closet|deposito|despensa|circulacao|hall|escada|lavanderia|servico|gourmet|garagem|escritorio|home|jardim|piscina|estar|jantar|churrasqueira|corredor|vestiario|mezanino|adega|biblioteca|deck|solarium|edicula|sotao|quintal|patio)\b/;
+const BLOQ=/\b(ponto|pontos|parede|piso|movel|receber|construir|marcenaria|acabamento|bancada|rodape|interruptor|quadro|led|unidade|altura|projeto|prancha|cor|seguir|manter|levado|registro|gas|papeleira|microondas|moldura|alvenaria|luminotecnico|aparece|aparecem|distancia|relacao|todos|vao|janela|porta|fita|pintura|energia|pendente|detalhe|vista|corte)\b/;
+function limparNome(s){
+  return s.replace(/\s+/g,' ').trim()
+    .replace(/\b(PR|RE|QT|RP|TX|S|C|W|M|E|V|P|J|D)[\-\s]?\d+[A-Z]?\b/g,'')
+    .replace(/^[\-\.\/ ]+|[\-\.\/ ]+$/g,'').replace(/\s+/g,' ').trim();
+}
+/* Um mesmo ambiente aparece em várias pranchas. Vale a área que mais se
+   repete, não a maior — assim um rótulo mal posicionado não contamina. */
+function extrairAmbientes(txt){
+  const bruto=new Map(); let m; RE_AREA.lastIndex=0;
+  while((m=RE_AREA.exec(txt))!==null){
+    const nome=limparNome(m[1]), area=nn(m[2]);
+    if(nome.length<4||area<=0.4||area>3000) continue;
+    const n=norm(nome);
+    if(!VOCAB.test(n)||BLOQ.test(n)) continue;
+    if(!bruto.has(n)) bruto.set(n,{nome,areas:new Map()});
+    const e=bruto.get(n); e.areas.set(area,(e.areas.get(area)||0)+1);
+  }
+  const out=[];
+  bruto.forEach(e=>{
+    let melhor=0, freq=0;
+    e.areas.forEach((c,a)=>{ if(c>freq||(c===freq&&a>melhor)){freq=c;melhor=a;} });
+    out.push({nome:e.nome, area:melhor, freq, on:true});
+  });
+  const max=Math.max(...out.map(o=>o.freq),1);
+  const min = max>=4 ? 2 : 1;   // projeto com poucas pranchas não pode exigir repetição
+  return out.filter(o=>o.freq>=min).sort((a,b)=>b.area-a.area);
+}
+function tipoAmb(nome){
+  const n=norm(nome);
+  if(/externa|jardim|piscina|gramad|calcada|quintal|garagem/.test(n)) return 'externo';
+  if(/varanda|sacada|terraco|deck/.test(n)) return 'varanda';
+  if(/wc|banh|lavabo|sanitario|suite master|closet/.test(n) && /wc|banh|lavabo|sanitario/.test(n)) return 'molhado';
+  if(/cozinha|servico|gourmet|copa|lavanderia/.test(n)) return 'servico';
+  return 'seco';
+}
+/* perímetro aproximado de um retângulo de proporção 3:2 */
+const perimetro = a => Math.round(2*(Math.sqrt(a*1.5)+Math.sqrt(a/1.5))*100)/100;
+
+/* --- palavras que ligam serviços do documento inteiro -------------------- */
+const GATILHOS=[
+  [/porcelanato|iancogres/,'porcelanato'],[/textura|grafiato/,'textura'],
+  [/mdf|marcenaria|marceneiro/,'marcenaria'],[/espelho/,'espelho'],
+  [/hidromassagem|jacuzzi|banheira/,'hidro'],[/pergolado/,'pergolado'],
+  [/muxarabi|ripad/,'ripado'],[/guarda[\s\-]?corpo/,'guardacorpo'],
+  [/cassete/,'cassete'],[/hi[\s\-]?wall|split|ar[\s\-]?condicionado/,'split'],
+  [/piso drenante/,'drenante'],[/deck/,'deck'],[/travertino|quartzito|granito|marmore|mármore/,'pedra'],
+  [/pastilha|filete/,'pastilha'],[/demoli|retirada|a demolir|existente a manter/,'reforma'],
+  [/box|vidro temperado/,'box'],[/pedra portuguesa|grama/,'grama'],
+  [/sanca|tabica/,'sanca'],[/fita de led|perfil de led|led/,'led'],
+  [/cobogo|cobogó|combogo/,'cobogo'],[/pintura|latex|látex|acrilic/,'pintura']
+];
+function gatilhos(txt){
+  const n=norm(txt), r={};
+  GATILHOS.forEach(([re,k])=>{ if(re.test(n)) r[k]=true; });
+  return r;
+}
+
+/* --- regras de cálculo ---------------------------------------------------- */
+function calcularPropostas(){
+  const pd=nn($('#peDir').value)||2.7, dv=(nn($('#descVao').value)||0)/100;
+  const g=achadosDoc, acc=new Map();
+  const add=(id,q,nota)=>{
+    if(!q||q<=0) return;
+    const c=catalogo.find(x=>x.id===id); if(!c) return;
+    const e=acc.get(id);
+    if(e){ e.qtd+=q; if(nota&&!e.notas.includes(nota)) e.notas.push(nota); }
+    else acc.set(id,{catId:id,cat:c,qtd:q,notas:nota?[nota]:[],on:true});
+  };
+  const ativos=ambientes.filter(a=>a.on);
+  let areaInterna=0, areaMolhada=0, nAmbInternos=0;
+
+  ativos.forEach(a=>{
+    const A=a.area, P=perimetro(A), paredes=P*pd*(1-dv), t=tipoAmb(a.nome);
+    const nota=a.nome;
+
+    if(t==='externo'){
+      if(g.drenante) add('pis-dren',A*0.35,nota); else add('pis-pedra',A*0.5,nota);
+      if(g.grama) add('ext-grama',A*0.3,nota);
+      add('pin-ext',P*pd*0.5,nota);
+      add('fim-limp',A,nota);
+      return;
+    }
+    if(t==='varanda'){
+      add('alv-imp',A,nota); add('pis-pedra',A,nota); add('pis-rej',A,nota);
+      add('pin-ext',paredes*0.6,nota); add('ele-pt',Math.max(2,Math.round(A*0.5)),nota);
+      add('fim-limp',A,nota); areaInterna+=A; return;
+    }
+
+    nAmbInternos++; areaInterna+=A;
+    // base de qualquer ambiente interno
+    add('alv-cp',A,nota);
+    add(A>=18?'pis-porcg':'pis-porc',A,nota);
+    add('pis-mat',A*1.1,nota);
+    add('pis-rej',A,nota);
+    add('ges-forro',A,nota);
+    if(g.sanca) add('ges-sanca',P,nota);
+    add('pin-forro',A,nota);
+    add('ele-pt',Math.max(4,Math.round(A*0.9)),nota);
+    add('ele-lum',Math.max(2,Math.round(A*0.45)),nota);
+    add('fim-limp',A,nota);
+    if(g.led) add('ele-fita',P*0.5,nota);
+
+    if(t==='molhado'||t==='servico'){
+      areaMolhada+=A;
+      add('alv-imp', t==='molhado'?A*1.6:A, nota);
+      add('par-porc',paredes,nota);
+      add('hid-af', t==='molhado'?3:4, nota);
+      add('hid-esg', t==='molhado'?2:3, nota);
+      add('hid-metal', t==='molhado'?3:2, nota);
+      if(t==='molhado'){ add('hid-bacia',1,nota); add('hid-cuba',1,nota);
+        if(g.box) add('esq-box',1,nota); if(g.espelho) add('esq-esp',1.4,nota); }
+      else { add('hid-cuba',1,nota); }
+      add('ped-gran',Math.min(A*0.35,4),nota);
+    } else {
+      add('pin-massa',paredes,nota);
+      add('pin-latex',paredes,nota);
+      add('pis-rod',P*0.88,nota);
+      if(g.textura) add('pin-text',paredes*0.28,nota);
+    }
+    if(g.marcenaria) add('mar-mdf',A*0.35,nota);
+    add('esq-pm',1,nota);
+  });
+
+  // itens do documento que não dependem de ambiente
+  if(g.reforma && areaInterna){
+    add('dem-rev',areaInterna*0.8,'reforma'); add('dem-forro',areaInterna*0.4,'reforma');
+    add('dem-louca',Math.max(2,Math.round(areaMolhada*0.8)),'reforma');
+    add('dem-cac',Math.max(2,Math.ceil(areaInterna/28)),'reforma');
+    add('dem-prot',areaInterna*0.35,'reforma');
+  }
+  if(g.hidro) add('hid-hidro',1,'projeto');
+  if(g.pergolado) add('ext-perg',18,'projeto');
+  if(g.ripado) add('par-pain',12,'projeto');
+  if(g.guardacorpo) add('esq-gc',6,'projeto');
+  if(g.cassete) add('ar-cas',2,'projeto');
+  if(g.split) add('ar-hw',Math.max(1,Math.round(nAmbInternos*0.25)),'projeto');
+  if(g.deck) add('pis-deck',12,'projeto');
+  if(g.pastilha) add('par-past',5,'projeto');
+  if(g.cobogo) add('esq-jan',3,'projeto');
+  if(areaInterna) { add('ele-qd',1,'geral'); add('ele-inf',areaInterna*1.6,'geral');
+                    add('fim-adm',Math.max(1,Math.round(areaInterna/45)),'geral'); }
+
+  propostas=[...acc.values()].map(x=>({...x,qtd:Math.round(x.qtd*100)/100}));
+  propostas.sort((a,b)=>{
+    const ia=ORDEM.indexOf(a.cat.etapa), ib=ORDEM.indexOf(b.cat.etapa);
+    return (ia<0?99:ia)-(ib<0?99:ib) || a.cat.servico.localeCompare(b.cat.servico);
+  });
+  renderPropostas();
+}
+
+/* --- telas de conferência ------------------------------------------------- */
+function renderAmbientes(){
+  const el=$('#listaAmb'); el.innerHTML='';
+  ambientes.forEach((a,i)=>{
+    const d=document.createElement('div'); d.className='chk '+(a.on?'on':'off');
+    d.innerHTML='<div class="bx">'+(a.on?'✓':'')+'</div>'+
+      '<div class="g"><div class="t">'+esc(a.nome)+'</div>'+
+      '<div class="u">'+tipoAmb(a.nome)+' · perímetro ≈ '+qf(perimetro(a.area))+' m</div></div>'+
+      '<input class="q" inputmode="decimal" value="'+qf(a.area)+'">';
+    const inp=d.querySelector('input');
+    inp.onclick=e=>e.stopPropagation();
+    inp.onchange=()=>{ a.area=nn(inp.value); calcularPropostas(); };
+    d.onclick=()=>{ a.on=!a.on; renderAmbientes(); calcularPropostas(); };
+    el.appendChild(d);
+  });
+  const tot=ambientes.filter(a=>a.on).reduce((s,a)=>s+a.area,0);
+  const r=$('#resultado');
+  r.style.display='block';
+  r.querySelector('h3').textContent='Ambientes encontrados — '+ambientes.filter(a=>a.on).length+' · '+qf(tot)+' m²';
+}
+function renderPropostas(){
+  const el=$('#listaProp'); el.innerHTML='';
+  const pO=obra?(obra.padrao||'m'):'m';
+  let et=null, tot=0;
+  propostas.forEach(pr=>{
+    if(pr.cat.etapa!==et){ et=pr.cat.etapa;
+      const hh=document.createElement('div'); hh.className='etapa';
+      hh.innerHTML='<span class="ct">'+esc(et)+'</span>'; el.appendChild(hh); }
+    const p=precoDe(pr.cat,pO), v=pr.qtd*(p.mo+p.mat);
+    if(pr.on) tot+=v;
+    const d=document.createElement('div'); d.className='chk '+(pr.on?'on':'off');
+    d.innerHTML='<div class="bx">'+(pr.on?'✓':'')+'</div>'+
+      '<div class="g"><div class="t">'+esc(pr.cat.servico)+'</div>'+
+      '<div class="u">'+qf(pr.qtd)+' '+esc(pr.cat.un)+' · MO '+brl(p.mo)+' · '+esc(pr.notas.slice(0,2).join(', '))+
+      (pr.notas.length>2?' +'+(pr.notas.length-2):'')+'</div></div>'+
+      '<div class="p"><b>'+brl(v)+'</b><small>'+brl(pr.qtd*p.mo)+' m.o.</small></div>';
+    d.onclick=()=>{ pr.on=!pr.on; renderPropostas(); };
+    el.appendChild(d);
+  });
+  $('#cfgLev').style.display=propostas.length?'block':'none';
+  $('#acaoLev').style.display=propostas.length?'block':'none';
+  $('#propTot').textContent=brl(tot);
+}
+
+/* --- ler --------------------------------------------------------------- */
+$('#btnLer').onclick=async()=>{
+  if(!obra) return toast('Abra uma obra primeiro');
+  const btn=$('#btnLer'); btn.disabled=true; btn.textContent='Lendo…';
+  $('#prog').classList.add('on'); $('#progBar').style.width='0%';
+  try{
+    let txt='';
+    for(let k=0;k<arquivos.length;k++){
+      txt += await textoDoPDF(arquivos[k],(p,n)=>{
+        $('#progBar').style.width=Math.round(((k+p/n)/arquivos.length)*100)+'%';
+      });
+    }
+    if(txt.replace(/\s/g,'').length<200){
+      toast('PDF sem texto — provavelmente digitalizado');
+      $('#resultado').style.display='block';
+      ambientes=[]; renderAmbientes(); calcularPropostas();
+    } else {
+      ambientes=extrairAmbientes(txt);
+      achadosDoc=gatilhos(txt);
+      renderAmbientes(); calcularPropostas();
+      toast(ambientes.length+' ambientes encontrados');
+    }
+    $('#cfgLev').style.display='block';
+  }catch(e){ toast('Não consegui ler: '+e.message); }
+  btn.disabled=false; btn.textContent='Ler projeto';
+  $('#prog').classList.remove('on');
+};
+['peDir','descVao'].forEach(k=>{ const e=$('#'+k); if(e) e.addEventListener('change',calcularPropostas); });
+$('#addAmb').onclick=()=>{
+  const n=prompt('Nome do ambiente:'); if(!n) return;
+  const a=prompt('Área em m²:'); if(a===null) return;
+  ambientes.push({nome:n.toUpperCase(),area:nn(a),on:true});
+  renderAmbientes(); calcularPropostas();
+};
+$('#btnLancar').onclick=()=>{
+  if(!obra) return toast('Abra uma obra');
+  const pO=obra.padrao||'m'; let n=0, som=0;
+  propostas.filter(p=>p.on).forEach(pr=>{
+    const p=precoDe(pr.cat,pO);
+    const ex=obra.itens.find(i=>i.catId===pr.catId && !i.pad);
+    if(ex){ ex.qtd=Math.round((ex.qtd+pr.qtd)*100)/100; som++; }
+    else { obra.itens.push({uid:uid++,etapa:pr.cat.etapa,catId:pr.catId,desc:pr.cat.servico,
+      un:pr.cat.un,qtd:pr.qtd,amb:pr.notas.slice(0,3).join(', '),mo:p.mo,mat:p.mat,pad:'',
+      origem:'projeto',edit:{}}); n++; }
+  });
+  salvarObra(); renderTudo(); irPara('orc');
+  toast(n+' serviços lançados'+(som?' · '+som+' somados':''));
+};
+
+/* ==========================================================
+   13. EXPORTAÇÕES
+   ========================================================== */
+function baixar(nome,txt,tipo){
+  const b=new Blob(["\ufeff"+txt],{type:tipo});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(b); a.download=nome; a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href),1500);
+}
+$('#expOrc').onclick=()=>{
+  if(!obra)return;
+  const pO=obra.padrao||'m';
+  const l=[`"OBRA";"${obra.nome}"`,`"CLIENTE";"${obra.cliente||''}"`,
+    `"PADRÃO";"${PADROES_LONGO[pO]}"`,'',
+    'Etapa;Serviço;Ambiente;Padrão;Un;Qtd;MO un.;Mat un.;Total MO;Total Mat;Total'];
+  etapas().forEach(et=>obra.itens.filter(i=>i.etapa===et).forEach(i=>{
+    l.push([i.etapa,i.desc,i.amb||'',PADROES_LONGO[i.pad||pO],i.un,br2(i.qtd),br2(i.mo),br2(i.mat),
+      br2(i.qtd*i.mo),br2(i.qtd*i.mat),br2(i.qtd*(i.mo+i.mat))]
+      .map(c=>`"${String(c).replace(/"/g,'""')}"`).join(';'));
+  }));
+  const s=somas();
+  l.push('',`"TOTAL MÃO DE OBRA";"${br2(s.mo)}"`,`"TOTAL MATERIAL";"${br2(s.mat)}"`,
+    `"CUSTO DIRETO";"${br2(s.base)}"`,`"ADMINISTRAÇÃO";"${br2(s.bdi)}"`,`"MARGEM";"${br2(s.mg)}"`,
+    `"RESERVA";"${br2(s.res)}"`,`"TOTAL";"${br2(s.total)}"`);
+  baixar((obra.nome||'orcamento').replace(/\W+/g,'-').toLowerCase()+'.csv',l.join('\n'),'text/csv;charset=utf-8');
+};
+$('#expCat').onclick=()=>{
+  const l=['Etapa;Serviço;Un;Mão de obra;Material'];
+  catalogo.forEach(c=>l.push([c.etapa,c.servico,c.un,br2(c.mo),br2(c.mat)]
+    .map(x=>`"${String(x).replace(/"/g,'""')}"`).join(';')));
+  baixar('tabela-de-precos.csv',l.join('\n'),'text/csv;charset=utf-8');
+};
+$('#expJson').onclick=()=>{ if(obra) baixar((obra.nome||'obra').replace(/\W+/g,'-').toLowerCase()+'.json',
+  JSON.stringify({v:3,obra,catalogo},null,1),'application/json'); };
+$('#impJson').onclick=()=>$('#loadInput').click();
+$('#loadInput').onchange=async e=>{
+  const f=e.target.files[0]; if(!f)return;
+  try{
+    const d=JSON.parse(await f.text());
+    if(d.obra){
+      d.obra.id='o'+Date.now().toString(36); obra=d.obra;
+      indice.unshift({id:obra.id,nome:obra.nome,cliente:obra.cliente,total:0,mo:0,atualizado:Date.now()});
+      await salvarIndice(); salvarObra(); renderTudo(); irPara('orc'); toast('Obra importada');
+    }
+  }catch(err){ toast('Arquivo inválido'); }
+  e.target.value='';
+};
+$('#imprimir').onclick=()=>window.print();
+
+/* ==========================================================
+   14. FOLHA E MENU
+   ========================================================== */
+function abrirSheet(o){
+  $('#sheetIn').innerHTML=`<div class="hd"><h3>${esc(o.titulo)}</h3><button class="back" style="color:var(--ink);display:block" id="shX">✕</button></div><div class="bd">${o.html}</div>`;
+  $('#sheet').classList.add('on'); $('#scrim').classList.add('on');
+  $('#shX').onclick=fecharSheet;
+  if(o.onMount)o.onMount();
+}
+function fecharSheet(){ $('#sheet').classList.remove('on'); $('#scrim').classList.remove('on'); }
+$('#scrim').onclick=fecharSheet;
+function abrirMenu(opcoes){
+  const box=$('#menuBox'); box.innerHTML='';
+  opcoes.forEach(([txt,fn,perigo])=>{
+    const b=document.createElement('button'); b.textContent=txt; if(perigo)b.className='dg';
+    b.onclick=()=>{ $('#menu').classList.remove('on'); fn(); };
+    box.appendChild(b);
+  });
+  const c=document.createElement('button'); c.textContent='Cancelar'; c.style.color='var(--ink3)';
+  c.onclick=()=>$('#menu').classList.remove('on'); box.appendChild(c);
+  $('#menu').classList.add('on');
+}
+$('#menu').querySelector('.bg').onclick=()=>$('#menu').classList.remove('on');
+
+/* ==========================================================
+   15. INÍCIO
+   ========================================================== */
+(async()=>{
+  await carregarTudo();
+  renderCat(); renderObras();
+  if(obra){ irPara('orc'); renderTudo(); } else irPara('obras');
+  if('serviceWorker' in navigator){ navigator.serviceWorker.register('sw.js').catch(()=>{}); }
+})();
+</script>
+</body>
+</html>
