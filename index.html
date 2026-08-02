@@ -18,9 +18,15 @@
 :root{
   --paper:#EDEEE8; --panel:#FFF; --ink:#16181A; --ink2:#4A4F52; --ink3:#858C8E;
   --rule:#D6D9D1; --rule2:#E7E9E2; --stamp:#B7332A; --stamp2:#F7E5E3;
-  --blue:#1F5FA0; --blue2:#E5EEF8; --marker:#EFC63C; --marker2:#FDF4D6; --ok:#2F6A4A;
+  --blue:#1F5FA0; --blue2:#E5EEF8; --marker:#EFC63C; --marker2:#FDF4D6; --marker3:#FCEBAE; --ok:#2F6A4A;
+  --chrome:#16181A;
   --safe-b:env(safe-area-inset-bottom,0px); --safe-t:env(safe-area-inset-top,0px);
   --nav:62px;
+}
+:root[data-theme="dark"]{
+  --paper:#121314; --panel:#1C1E20; --ink:#EDEEE8; --ink2:#B7BCBE; --ink3:#82898B;
+  --rule:#33383A; --rule2:#26292B; --stamp:#E2564B; --stamp2:#3A2320;
+  --blue:#5B9FE0; --blue2:#1B2A38; --marker:#EFC63C; --marker2:#332C13; --marker3:#4A3D16; --ok:#4B9270;
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;padding:0;overscroll-behavior-y:none}
@@ -28,13 +34,14 @@ body{
   background:var(--paper);color:var(--ink);
   font-family:'IBM Plex Sans',system-ui,-apple-system,sans-serif;font-size:15px;
   -webkit-font-smoothing:antialiased;-webkit-text-size-adjust:100%;
+  transition:background-color .2s,color .2s;
 }
 .app{max-width:600px;margin:0 auto;background:var(--paper);min-height:100vh;position:relative}
-input,select,textarea,button{font-family:inherit;font-size:16px}
+input,select,textarea,button{font-family:inherit;font-size:16px;color:var(--ink)}
 
 /* ---------- topo ---------- */
 .top{
-  position:sticky;top:0;z-index:30;background:var(--ink);color:#fff;
+  position:sticky;top:0;z-index:30;background:var(--chrome);color:#fff;
   padding:calc(var(--safe-t) + 12px) 14px 12px;display:flex;align-items:center;gap:11px;
   border-bottom:2px solid var(--stamp)}
 .top h1{
@@ -48,6 +55,9 @@ input,select,textarea,button{font-family:inherit;font-size:16px}
 .tbtn:active{background:#2A2F31}
 .tbtn.red{background:var(--stamp);border-color:var(--stamp)}
 .back{background:none;border:none;color:#fff;font-size:22px;padding:0 4px;cursor:pointer;line-height:1}
+.theme-tg{background:transparent;border:1px solid #3B4143;color:#fff;width:38px;height:38px;border-radius:2px;
+  font-size:15px;cursor:pointer;flex:0 0 auto;display:flex;align-items:center;justify-content:center}
+.theme-tg:active{background:#2A2F31}
 
 /* ---------- telas ---------- */
 .screen{display:none;padding-bottom:calc(var(--nav) + var(--safe-b) + 74px)}
@@ -59,7 +69,7 @@ input,select,textarea,button{font-family:inherit;font-size:16px}
 .obra{
   background:var(--panel);border:1px solid var(--rule);margin-bottom:10px;padding:14px;
   display:flex;gap:12px;align-items:flex-start;cursor:pointer}
-.obra:active{background:#F8F9F5}
+.obra:active{background:var(--rule2)}
 .obra .g{flex:1;min-width:0}
 .obra .nm{font-family:'Archivo Narrow',sans-serif;font-size:16px;font-weight:700;letter-spacing:.02em;
   line-height:1.25;margin-bottom:3px}
@@ -72,13 +82,13 @@ input,select,textarea,button{font-family:inherit;font-size:16px}
 
 /* ---------- lista de itens ---------- */
 .etapa{
-  background:var(--ink);color:#fff;padding:11px 13px;display:flex;align-items:center;gap:9px;
+  background:var(--chrome);color:#fff;padding:11px 13px;display:flex;align-items:center;gap:9px;
   font-family:'Archivo Narrow',sans-serif;font-size:11.5px;font-weight:700;letter-spacing:.14em;
   text-transform:uppercase;cursor:pointer;margin-top:12px}
 .etapa .ct{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .etapa .vv{font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:0;font-weight:500;color:#D8DCDA}
 .it{background:var(--panel);border-bottom:1px solid var(--rule2);padding:11px 13px;cursor:pointer;position:relative}
-.it:active{background:#F7F8F4}
+.it:active{background:var(--rule2)}
 .it .t{font-size:14px;line-height:1.35;margin-bottom:4px;padding-right:78px}
 .it .s{font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--ink3)}
 .it .s em{font-style:normal;color:var(--stamp);font-weight:600}
@@ -96,7 +106,7 @@ input,select,textarea,button{font-family:inherit;font-size:16px}
   display:block;width:100%;padding:14px;border:1.4px solid var(--ink);background:var(--panel);color:var(--ink);
   font-family:'Archivo Narrow',sans-serif;font-size:13px;font-weight:700;letter-spacing:.12em;
   text-transform:uppercase;cursor:pointer;margin-bottom:9px;min-height:48px}
-.btn:active{background:var(--ink);color:#fff}
+.btn:active{background:var(--chrome);color:#fff}
 .btn.pri{background:var(--stamp);border-color:var(--stamp);color:#fff}
 .btn.pri:active{background:#93271F}
 .btn.gh{border-color:var(--rule);color:var(--ink2)}
@@ -114,7 +124,7 @@ input,select,textarea,button{font-family:inherit;font-size:16px}
 
 /* ---------- navegação inferior ---------- */
 .nav{
-  position:fixed;bottom:0;left:0;right:0;z-index:40;background:var(--ink);
+  position:fixed;bottom:0;left:0;right:0;z-index:40;background:var(--chrome);
   display:flex;padding-bottom:var(--safe-b);border-top:1px solid #2C3133}
 .nav .app-in{max-width:600px;margin:0 auto;display:flex;width:100%}
 .nav button{
@@ -164,7 +174,7 @@ input,select,textarea,button{font-family:inherit;font-size:16px}
 .f textarea{min-height:80px;resize:vertical;line-height:1.55}
 .f3{display:grid;grid-template-columns:1fr 76px;gap:9px}
 .calcline{
-  background:var(--ink);color:#fff;padding:13px 15px;display:flex;justify-content:space-between;align-items:center;
+  background:var(--chrome);color:#fff;padding:13px 15px;display:flex;justify-content:space-between;align-items:center;
   font-family:'IBM Plex Mono',monospace;margin-bottom:15px}
 .calcline span{font-family:'Archivo Narrow',sans-serif;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:#98A0A2}
 .calcline b{font-size:19px}
@@ -212,7 +222,7 @@ input,select,textarea,button{font-family:inherit;font-size:16px}
   font-family:'Archivo Narrow',sans-serif;font-size:11.5px;font-weight:700;letter-spacing:.1em;
   text-transform:uppercase;color:var(--ink3);border-right:1px solid var(--rule2);min-height:44px}
 .segs button:last-child{border-right:none}
-.segs button.on{background:var(--ink);color:#fff}
+.segs button.on{background:var(--chrome);color:#fff}
 .segs button.on[data-p="a"]{background:var(--stamp)}
 .segs button.on[data-p="b"]{background:var(--ink2)}
 .segs .px{display:block;font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:0;
@@ -235,10 +245,10 @@ input,select,textarea,button{font-family:inherit;font-size:16px}
   font-family:'IBM Plex Mono',monospace;font-size:15px;text-align:right;background:var(--panel);min-height:46px}
 .tiers input:focus{background:var(--blue2)}
 .tiers input.mo{background:var(--marker2)}
-.tiers input.mo:focus{background:#FCEBAE}
+.tiers input.mo:focus{background:var(--marker3)}
 .cmp{display:grid;grid-template-columns:1fr 1fr 1fr;gap:1px;background:var(--rule);border:1px solid var(--rule);margin-top:16px}
 .cmp div{background:var(--panel);padding:12px 9px;text-align:center;cursor:pointer}
-.cmp div.on{background:var(--ink);color:#fff}
+.cmp div.on{background:var(--chrome);color:#fff}
 .cmp span{font-family:'Archivo Narrow',sans-serif;font-size:9px;letter-spacing:.13em;text-transform:uppercase;
   color:var(--ink3);display:block;margin-bottom:4px}
 .cmp div.on span{color:#98A0A2}
@@ -271,7 +281,7 @@ input,select,textarea,button{font-family:inherit;font-size:16px}
   align-items:center;cursor:pointer}
 .chk .bx{width:21px;height:21px;border:1.6px solid var(--rule);flex:0 0 auto;display:flex;align-items:center;
   justify-content:center;font-size:14px;color:#fff}
-.chk.on .bx{background:var(--ink);border-color:var(--ink)}
+.chk.on .bx{background:var(--chrome);border-color:var(--chrome)}
 .chk.off{opacity:.45}
 .chk .g{flex:1;min-width:0}
 .chk .t{font-size:14px;line-height:1.3}
@@ -284,7 +294,7 @@ input,select,textarea,button{font-family:inherit;font-size:16px}
 .chk input.q:focus{border-color:var(--blue);outline:none}
 .toast{
   position:fixed;left:50%;transform:translateX(-50%) translateY(12px);
-  bottom:calc(var(--nav) + var(--safe-b) + 76px);background:var(--ink);color:#fff;padding:12px 20px;
+  bottom:calc(var(--nav) + var(--safe-b) + 76px);background:var(--chrome);color:#fff;padding:12px 20px;
   font-family:'Archivo Narrow',sans-serif;font-size:12px;letter-spacing:.1em;text-transform:uppercase;
   z-index:80;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;border-left:3px solid var(--marker);
   max-width:88vw;text-align:center}
@@ -309,6 +319,7 @@ input,select,textarea,button{font-family:inherit;font-size:16px}
     <button class="back" id="back" style="display:none">‹</button>
     <h1 id="topTit">Obras<span class="sub" id="topSub">Orçamento de reformas</span></h1>
     <button class="tbtn" id="topAct" style="display:none"></button>
+    <button class="theme-tg" id="themeTg" title="Alternar modo claro/escuro">☾</button>
   </header>
 
   <!-- ============ OBRAS ============ -->
@@ -1719,9 +1730,30 @@ function abrirMenu(opcoes){
 $('#menu').querySelector('.bg').onclick=()=>$('#menu').classList.remove('on');
 
 /* ==========================================================
-   15. INÍCIO
+   15. MODO ESCURO
+   ========================================================== */
+function aplicarTema(t){
+  document.documentElement.setAttribute('data-theme', t);
+  $('#themeTg').textContent = t==='dark' ? '☀' : '☾';
+  $('meta[name="theme-color"]').setAttribute('content', t==='dark' ? '#121314' : '#16181A');
+}
+async function initTema(){
+  let t = await store.get('tema');
+  if(!t) t = (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light';
+  aplicarTema(t);
+}
+$('#themeTg').onclick = async ()=>{
+  const atual = document.documentElement.getAttribute('data-theme');
+  const novo = atual==='dark' ? 'light' : 'dark';
+  aplicarTema(novo);
+  await store.set('tema', novo);
+};
+
+/* ==========================================================
+   16. INÍCIO
    ========================================================== */
 (async()=>{
+  await initTema();
   await carregarTudo();
   renderCat(); renderObras();
   if(obra){ irPara('orc'); renderTudo(); } else irPara('obras');
