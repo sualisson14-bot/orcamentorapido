@@ -362,8 +362,13 @@ input,select,textarea,button{font-family:inherit;font-size:16px;color:var(--ink)
   <!-- ============ LER PROJETO ============ -->
   <section class="screen" id="sc-pdf">
     <div class="pad">
-      <p class="hint" style="margin-top:0">O texto das pranchas é lido aqui no aparelho, sem enviar nada para fora.
+      <p class="hint" style="margin-top:0" id="pdfIntro">O texto das pranchas é lido aqui no aparelho, sem enviar nada para fora.
       O app localiza os ambientes e as áreas, e monta os serviços pela sua tabela de preços.</p>
+      <div class="f">
+        <label>Chave da API Gemini (opcional)</label>
+        <input id="geminiKey" type="password" placeholder="Cole aqui para leitura assistida por IA" autocomplete="off">
+      </div>
+      <p class="hint" style="margin:-8px 0 14px">Com uma chave, os ambientes e áreas do PDF são identificados pelo Gemini (o texto das pranchas é enviado ao Google) — mais preciso em plantas fora do padrão. Sem chave, a leitura continua 100% local, só no aparelho. Chave gratuita em <b>aistudio.google.com/apikey</b>.</p>
       <div class="drop" id="drop"><b>Escolher PDFs do projeto</b>
         <small>Plantas com os ambientes cotados (A=00.00m²).<br>Pode selecionar vários arquivos.</small></div>
       <input type="file" id="fInput" accept="application/pdf" multiple hidden>
@@ -1366,15 +1371,59 @@ function lancar(c){
 
 
 /* ==========================================================
-   12b. LEITURA DE PROJETO — extração local, sem rede
+   12b. LEITURA DE PROJETO
    --------------------------------------------------------
-   A pdf.js devolve o texto das pranchas. Daí saem os ambientes
-   (nome + A=00.00m²) por expressão regular, e os serviços são
-   calculados por regra a partir da área. Nada é adivinhado:
-   toda quantidade tem fórmula, e o construtor confere antes.
+   A pdf.js devolve o texto das pranchas. Sem chave do Gemini,
+   os ambientes (nome + A=00.00m²) saem por expressão regular local.
+   Com chave, o mesmo texto vai pro Gemini extrair os ambientes —
+   mais tolerante a plantas fora do padrão da regex. Em ambos os
+   casos os serviços são calculados por regra local a partir da
+   área. Nada é adivinhado: toda quantidade tem fórmula, e o
+   construtor confere antes.
    ========================================================== */
 if(window.pdfjsLib) pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 let arquivos=[], ambientes=[], propostas=[], achadosDoc={};
+
+/* --- chave do Gemini (fica só no aparelho) -------------------------------- */
+store.get('gemini:key').then(k=>{ if(k) $('#geminiKey').value=k; });
+$('#geminiKey').addEventListener('change', ()=>{ store.set('gemini:key', $('#geminiKey').value.trim()); });
+
+/* --- ambientes via Gemini --------------------------------------------------
+   Mesma saída da extração local: [{nome, area, on:true}]. Se a chamada
+   falhar (chave inválida, cota, rede), quem chamou cai pra regex local. */
+const GEMINI_MODELO = 'gemini-3.5-flash';
+async function ambientesPorIA(txt, apiKey){
+  const prompt = 'Você lê texto extraído de pranchas de projeto de arquitetura/reforma em português (Brasil). '+
+    'Encontre os AMBIENTES (cômodos: sala, quarto, suíte, banheiro, cozinha, varanda, área de serviço, closet, etc.) '+
+    'que tenham uma área em m² indicada perto do nome (geralmente no formato "NOME A=00.00m²" ou similar). '+
+    'Ignore anotações que não são ambientes (ex.: "PONTO DE GÁS", "RODAPÉ", legendas, cotas de parede, notas de acabamento). '+
+    'Se o mesmo ambiente aparecer em mais de uma prancha com áreas diferentes, use a área que aparece com mais frequência. '+
+    'Devolva só ambientes reais, sem repetir nomes. Texto das pranchas:\n\n'+txt.slice(0,180000);
+  const body={
+    contents:[{parts:[{text:prompt}]}],
+    generationConfig:{
+      responseMimeType:'application/json',
+      responseSchema:{type:'ARRAY',items:{type:'OBJECT',properties:{
+        nome:{type:'STRING'}, area:{type:'NUMBER'}
+      },required:['nome','area']}}
+    }
+  };
+  const url='https://generativelanguage.googleapis.com/v1beta/models/'+GEMINI_MODELO+':generateContent?key='+encodeURIComponent(apiKey);
+  const r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+  if(!r.ok){
+    let msg='Gemini: erro '+r.status;
+    try{ const j=await r.json(); if(j?.error?.message) msg='Gemini: '+j.error.message; }catch(e){}
+    throw new Error(msg);
+  }
+  const data=await r.json();
+  const raw=data?.candidates?.[0]?.content?.parts?.[0]?.text;
+  if(!raw) throw new Error('Gemini: resposta vazia');
+  const lista=JSON.parse(raw);
+  if(!Array.isArray(lista)) throw new Error('Gemini: formato inesperado');
+  return lista
+    .map(x=>({nome:limparNome(String(x.nome||'').toUpperCase()), area:nn(x.area), on:true}))
+    .filter(a=>a.nome.length>=3 && a.area>0.4 && a.area<3000);
+}
 
 function renderArq(){
   const el=$('#fList'); el.innerHTML='';
@@ -1625,10 +1674,18 @@ $('#btnLer').onclick=async()=>{
       $('#resultado').style.display='block';
       ambientes=[]; renderAmbientes(); calcularPropostas();
     } else {
-      ambientes=extrairAmbientes(txt);
+      const apiKey=$('#geminiKey').value.trim();
+      let viaIA=false;
+      if(apiKey){
+        btn.textContent='Consultando IA…';
+        try{ ambientes=await ambientesPorIA(txt, apiKey); viaIA=true; }
+        catch(e){ toast(e.message+' — usando leitura local'); ambientes=extrairAmbientes(txt); }
+      } else {
+        ambientes=extrairAmbientes(txt);
+      }
       achadosDoc=gatilhos(txt);
       renderAmbientes(); calcularPropostas();
-      toast(ambientes.length+' ambientes encontrados');
+      toast(ambientes.length+' ambientes encontrados'+(viaIA?' (via IA)':''));
     }
     $('#cfgLev').style.display='block';
   }catch(e){ toast('Não consegui ler: '+e.message); }
@@ -1752,7 +1809,20 @@ $('#themeTg').onclick = async ()=>{
 /* ==========================================================
    16. INÍCIO
    ========================================================== */
+/* Link mágico: abrir "?gk=CHAVE" uma vez salva a chave do Gemini
+   localmente e limpa a URL — evita colar a chave manualmente. */
+async function bootstrapChaveIA(){
+  const qp=new URLSearchParams(location.search);
+  if(qp.has('gk')){
+    const k=qp.get('gk').trim();
+    if(k){ await store.set('gemini:key', k); $('#geminiKey').value=k; }
+    qp.delete('gk');
+    const resto=qp.toString();
+    history.replaceState(null,'',location.pathname+(resto?'?'+resto:'')+location.hash);
+  }
+}
 (async()=>{
+  await bootstrapChaveIA();
   await initTema();
   await carregarTudo();
   renderCat(); renderObras();
