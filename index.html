@@ -11,6 +11,9 @@
 <link rel="manifest" href="manifest.json">
 <title>Orçamento de Obra</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/4.2.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/5.0.8/jspdf.plugin.autotable.min.js"></script>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Archivo+Narrow:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
@@ -442,9 +445,19 @@ input,select,textarea,button{font-family:inherit;font-size:16px;color:var(--ink)
     </div>
     <div id="listaEtapas"></div>
     <div class="pad">
+      <h3 style="font-family:'Archivo Narrow';font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink3);border-bottom:1px solid var(--rule);padding-bottom:7px;margin:22px 0 7px">Cronograma de execução (estimativa)</h3>
+      <div class="f"><label>Início da obra</label><input type="date" id="cronoInicio"></div>
+    </div>
+    <div id="listaCrono"></div>
+    <div class="pad">
+      <p class="hint" style="margin:0 0 4px">Duração por etapa estimada pela produtividade média de uma equipe — ajuste os dias se souber o ritmo real. Itens por mês (ex. administração) correm em paralelo e não entram na duração.</p>
+    </div>
+    <div class="pad">
       <button class="btn gh sm" id="expOrc">Exportar orçamento (CSV)</button>
       <button class="btn gh sm" id="expJson">Salvar obra (arquivo)</button>
       <button class="btn gh sm" id="impJson">Abrir obra (arquivo)</button>
+      <button class="btn pri sm" id="expPdf">Baixar PDF (com gráficos e cronograma)</button>
+      <button class="btn gh sm" id="expXlsx">Baixar Excel (.xlsx)</button>
       <button class="btn gh sm" id="imprimir">Gerar proposta / imprimir</button>
     </div>
   </section>
@@ -643,6 +656,40 @@ function migrarCat(lista){
 const ORDEM = ["PRELIMINARES E DEMOLIÇÕES","ALVENARIA E ESTRUTURA","INSTALAÇÕES HIDRÁULICAS","ELÉTRICA E LÓGICA",
  "CLIMATIZAÇÃO","FORRO E PAREDES DE GESSO","REVESTIMENTO DE PISO","REVESTIMENTO DE PAREDE","PEDRAS E BANCADAS",
  "PINTURA E TEXTURA","ESQUADRIAS, VIDROS E ESPELHOS","MARCENARIA","ÁREA EXTERNA E PAISAGISMO","LIMPEZA E ENTREGA"];
+
+/* --- cronograma ------------------------------------------------------------
+   Duração de cada etapa = soma das quantidades da etapa ÷ produtividade média
+   de uma equipe por dia. Estimativa de planejamento, não substitui o
+   acompanhamento real da obra — por isso cada etapa pode ter os dias
+   ajustados à mão (obra.cronoOverride). Itens por mês (ex. administração)
+   não contam pra duração: correm em paralelo com a obra toda. */
+const PRODUTIVIDADE = {
+ "PRELIMINARES E DEMOLIÇÕES":35, "ALVENARIA E ESTRUTURA":12, "INSTALAÇÕES HIDRÁULICAS":10,
+ "ELÉTRICA E LÓGICA":14, "CLIMATIZAÇÃO":2, "FORRO E PAREDES DE GESSO":18,
+ "REVESTIMENTO DE PISO":14, "REVESTIMENTO DE PAREDE":10, "PEDRAS E BANCADAS":4,
+ "PINTURA E TEXTURA":35, "ESQUADRIAS, VIDROS E ESPELHOS":3, "MARCENARIA":6,
+ "ÁREA EXTERNA E PAISAGISMO":20, "LIMPEZA E ENTREGA":40
+};
+function calcularCronograma(){
+  if(!obra) return [];
+  const ini0 = obra.inicioObra ? new Date(obra.inicioObra+'T00:00:00') : new Date();
+  let cursor = new Date(ini0);
+  const linhas=[];
+  etapas().forEach(et=>{
+    const l = obra.itens.filter(i=>i.etapa===et && i.un!=='mês');
+    const qtd = l.reduce((s,i)=>s+i.qtd,0);
+    if(qtd<=0) return;
+    const prod = PRODUTIVIDADE[et]||10;
+    const over = obra.cronoOverride && obra.cronoOverride[et];
+    const dias = over>0 ? over : Math.max(2, Math.ceil(qtd/prod));
+    const inicio = new Date(cursor);
+    const fim = new Date(cursor); fim.setDate(fim.getDate()+dias-1);
+    linhas.push({etapa:et, dias, inicio, fim});
+    cursor = new Date(fim); cursor.setDate(cursor.getDate()+1);
+  });
+  return linhas;
+}
+const dataBR = d => d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric'});
 
 /* ==========================================================
    3. MODELOS DE ESCOPO
@@ -1328,7 +1375,33 @@ function renderResumo(){
       <div class="sm">MO ${brl(r.mo)} · Mat ${brl(r.mat)} · ${s.base?(r.tot/s.base*100).toFixed(1):0}% do total</div>`;
     el.appendChild(d);
   });
+  renderCrono();
 }
+function renderCrono(){
+  if(!obra) return;
+  $('#cronoInicio').value = obra.inicioObra || new Date().toISOString().slice(0,10);
+  const linhas=calcularCronograma();
+  const el=$('#listaCrono'); el.innerHTML='';
+  linhas.forEach(r=>{
+    const d=document.createElement('div'); d.className='et-l';
+    d.innerHTML=`<div class="r"><span>${esc(r.etapa)}</span>
+      <span><input class="q crono-dias" type="number" min="1" value="${r.dias}"> dias</span></div>
+      <div class="sm">${dataBR(r.inicio)} → ${dataBR(r.fim)}</div>`;
+    d.querySelector('.crono-dias').onclick=e=>e.stopPropagation();
+    d.querySelector('.crono-dias').onchange=e=>{
+      const v=Math.max(1,Math.round(nn(e.target.value))||1);
+      obra.cronoOverride = obra.cronoOverride||{};
+      obra.cronoOverride[r.etapa]=v;
+      salvarObra(); renderCrono();
+    };
+    el.appendChild(d);
+  });
+  if(!linhas.length) el.innerHTML='<p class="hint pad">Sem itens suficientes pra estimar um cronograma ainda.</p>';
+}
+$('#cronoInicio').addEventListener('change',()=>{
+  if(!obra) return;
+  obra.inicioObra=$('#cronoInicio').value; salvarObra(); renderCrono();
+});
 ['bdi','margem','reserva'].forEach(k=>$('#'+k).addEventListener('input',()=>{
   if(!obra)return; obra[k]=nn($('#'+k).value); salvarObra(); renderResumo(); atualizarBarra();
 }));
@@ -1812,6 +1885,111 @@ $('#loadInput').onchange=async e=>{
   e.target.value='';
 };
 $('#imprimir').onclick=()=>window.print();
+
+/* --- download em PDF (com gráficos e cronograma) e Excel ------------------ */
+function porEtapaValores(){
+  return etapas().map(et=>{
+    const l=obra.itens.filter(i=>i.etapa===et);
+    const mo=l.reduce((x,i)=>x+i.qtd*i.mo,0), mat=l.reduce((x,i)=>x+i.qtd*i.mat,0);
+    return {et,mo,mat,tot:mo+mat};
+  }).sort((a,b)=>b.tot-a.tot);
+}
+function gerarPDF(){
+  if(!obra) return toast('Abra uma obra');
+  if(!window.jspdf || !window.jspdf.jsPDF) return toast('Biblioteca de PDF não carregou — confira sua internet');
+  const {jsPDF}=window.jspdf;
+  const doc=new jsPDF();
+  const s=somas(), pO=obra.padrao||'m', mg=14;
+  let y=18;
+
+  doc.setFont('helvetica','bold'); doc.setFontSize(16);
+  doc.text(obra.nome||'Orçamento de obra', mg, y); y+=7;
+  doc.setFont('helvetica','normal'); doc.setFontSize(10); doc.setTextColor(90);
+  doc.text('Cliente: '+(obra.cliente||'—')+'   Endereço: '+(obra.endereco||'—'), mg, y); y+=5;
+  doc.text('Área: '+qf(obra.area||0)+' m²   Padrão: '+PADROES_LONGO[pO]+'   Praça: '+((REGIOES[obra.regiao||'CE']||{}).capital||'—'), mg, y); y+=5;
+  doc.text('Emitido em '+dataBR(new Date()), mg, y); y+=10;
+  doc.setTextColor(0);
+
+  doc.setFont('helvetica','bold'); doc.setFontSize(12);
+  doc.text('Resumo financeiro', mg, y); y+=6;
+  doc.autoTable({startY:y, margin:{left:mg,right:mg}, theme:'grid', styles:{fontSize:9},
+    head:[['Mão de obra','Material','Custo direto','Administração','Margem','Reserva','Total']],
+    body:[[brl(s.mo),brl(s.mat),brl(s.base),brl(s.bdi),brl(s.mg),brl(s.res),brl(s.total)]]});
+  y=doc.lastAutoTable.finalY+10;
+
+  doc.setFont('helvetica','bold'); doc.setFontSize(11);
+  doc.text('Composição do custo', mg, y); y+=6;
+  const larg=180, alt=8, t=s.total||1; let x=mg;
+  [[s.mo,[239,198,60]],[s.mat,[133,140,142]],[s.bdi+s.mg+s.res,[183,51,42]]].forEach(([v,cor])=>{
+    const w=larg*(v/t); doc.setFillColor(cor[0],cor[1],cor[2]); doc.rect(x,y,w,alt,'F'); x+=w;
+  });
+  y+=alt+6;
+  doc.setFontSize(9); doc.setTextColor(70);
+  doc.text('Mão de obra '+Math.round(s.mo/t*100)+'%   Material '+Math.round(s.mat/t*100)+'%   Adm.+margem+reserva '+Math.round((s.bdi+s.mg+s.res)/t*100)+'%', mg, y);
+  y+=12; doc.setTextColor(0);
+
+  const porEt=porEtapaValores(), maxEt=Math.max(...porEt.map(r=>r.tot),1);
+  doc.setFont('helvetica','bold'); doc.setFontSize(11);
+  doc.text('Custo por etapa', mg, y); y+=7;
+  doc.setFont('helvetica','normal'); doc.setFontSize(8);
+  porEt.forEach(r=>{
+    if(y>275){ doc.addPage(); y=18; }
+    doc.text(r.et.slice(0,30), mg, y+3);
+    doc.setFillColor(31,95,160); doc.rect(mg+58,y,70*(r.tot/maxEt),4,'F');
+    doc.text(brl(r.tot), mg+132, y+3);
+    y+=7;
+  });
+
+  doc.addPage(); y=18;
+  doc.setFont('helvetica','bold'); doc.setFontSize(12);
+  doc.text('Orçamento detalhado', mg, y);
+  const corpo=[];
+  etapas().forEach(et=>obra.itens.filter(i=>i.etapa===et).forEach(i=>{
+    corpo.push([et, i.desc, i.un, qf(i.qtd), brl(i.mo), brl(i.mat), brl(i.qtd*(i.mo+i.mat))]);
+  }));
+  doc.autoTable({startY:y+6, margin:{left:mg,right:mg}, styles:{fontSize:7.5}, headStyles:{fillColor:[22,24,26]},
+    head:[['Etapa','Serviço','Un','Qtd','MO un.','Mat un.','Total']], body:corpo});
+
+  const crono=calcularCronograma();
+  if(crono.length){
+    doc.addPage(); y=18;
+    doc.setFont('helvetica','bold'); doc.setFontSize(12);
+    doc.text('Cronograma de execução (estimativa)', mg, y);
+    doc.autoTable({startY:y+6, margin:{left:mg,right:mg}, styles:{fontSize:9}, headStyles:{fillColor:[22,24,26]},
+      head:[['Etapa','Dias','Início','Fim']],
+      body:crono.map(r=>[r.etapa,String(r.dias),dataBR(r.inicio),dataBR(r.fim)])});
+  }
+
+  doc.save((obra.nome||'orcamento').replace(/\W+/g,'-').toLowerCase()+'.pdf');
+}
+function gerarExcel(){
+  if(!obra) return toast('Abra uma obra');
+  if(!window.XLSX) return toast('Biblioteca de Excel não carregou — confira sua internet');
+  const s=somas(), pO=obra.padrao||'m';
+  const wb=XLSX.utils.book_new();
+
+  const itensAba=[['Etapa','Serviço','Ambiente','Padrão','Un','Qtd','MO un.','Mat un.','Total MO','Total Mat','Total']];
+  etapas().forEach(et=>obra.itens.filter(i=>i.etapa===et).forEach(i=>{
+    itensAba.push([i.etapa,i.desc,i.amb||'',PADROES_LONGO[i.pad||pO],i.un,i.qtd,i.mo,i.mat,
+      i.qtd*i.mo,i.qtd*i.mat,i.qtd*(i.mo+i.mat)]);
+  }));
+  itensAba.push([]); itensAba.push(['','','','','','','','TOTAL MÃO DE OBRA','TOTAL MATERIAL','','TOTAL']);
+  itensAba.push(['','','','','','','',s.mo,s.mat,'',s.total]);
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(itensAba), 'Orçamento');
+
+  const etAba=[['Etapa','Mão de obra','Material','Total','% do total']];
+  porEtapaValores().forEach(r=>etAba.push([r.et,r.mo,r.mat,r.tot, s.base?r.tot/s.base:0]));
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(etAba), 'Resumo por etapa');
+
+  const crono=calcularCronograma();
+  const cronoAba=[['Etapa','Dias','Início','Fim']];
+  crono.forEach(r=>cronoAba.push([r.etapa,r.dias,dataBR(r.inicio),dataBR(r.fim)]));
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(cronoAba), 'Cronograma');
+
+  XLSX.writeFile(wb, (obra.nome||'orcamento').replace(/\W+/g,'-').toLowerCase()+'.xlsx');
+}
+$('#expPdf').onclick=gerarPDF;
+$('#expXlsx').onclick=gerarExcel;
 
 /* ==========================================================
    14. FOLHA E MENU
