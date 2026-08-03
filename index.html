@@ -445,12 +445,18 @@ input,select,textarea,button{font-family:inherit;font-size:16px;color:var(--ink)
     </div>
     <div id="listaEtapas"></div>
     <div class="pad">
-      <h3 style="font-family:'Archivo Narrow';font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink3);border-bottom:1px solid var(--rule);padding-bottom:7px;margin:22px 0 7px">Cronograma de execução (estimativa)</h3>
+      <h3 style="font-family:'Archivo Narrow';font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink3);border-bottom:1px solid var(--rule);padding-bottom:7px;margin:22px 0 7px">Cronograma de execução (estimativa · dias úteis)</h3>
       <div class="f"><label>Início da obra</label><input type="date" id="cronoInicio"></div>
     </div>
     <div id="listaCrono"></div>
     <div class="pad">
-      <p class="hint" style="margin:0 0 4px">Duração por etapa estimada pela produtividade média de uma equipe — ajuste os dias se souber o ritmo real. Itens por mês (ex. administração) correm em paralelo e não entram na duração.</p>
+      <p class="hint" style="margin:0 0 4px">Duração por etapa em dias úteis (sem sáb/dom), estimada pela produtividade média de uma equipe — ajuste os dias se souber o ritmo real. Itens por mês (ex. administração) correm em paralelo e não entram na duração.</p>
+    </div>
+    <div class="pad">
+      <h3 style="font-family:'Archivo Narrow';font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink3);border-bottom:1px solid var(--rule);padding-bottom:7px;margin:22px 0 7px">Assinaturas do PDF</h3>
+      <div class="f"><label>Responsável pela obra (nome ou razão social)</label><input id="respNome" placeholder="Ms Serviços — Sualisson Tavares"></div>
+      <div class="f"><label>CNPJ do responsável</label><input id="respCnpj" placeholder="00.000.000/0001-00"></div>
+      <p class="hint" style="margin:0 0 4px">Fica salvo no aparelho e entra nas assinaturas de todo PDF gerado — não precisa preencher de novo.</p>
     </div>
     <div class="pad">
       <button class="btn gh sm" id="expOrc">Exportar orçamento (CSV)</button>
@@ -662,9 +668,9 @@ const ORDEM = ["PRELIMINARES E DEMOLIÇÕES","ALVENARIA E ESTRUTURA","INSTALAÇ�
 
 /* --- cronograma ------------------------------------------------------------
    Duração de cada etapa = soma das quantidades da etapa ÷ produtividade média
-   de uma equipe por dia. Estimativa de planejamento, não substitui o
-   acompanhamento real da obra — por isso cada etapa pode ter os dias
-   ajustados à mão (obra.cronoOverride). Itens por mês (ex. administração)
+   de uma equipe por dia útil (sem sáb/dom). Estimativa de planejamento, não
+   substitui o acompanhamento real da obra — por isso cada etapa pode ter os
+   dias ajustados à mão (obra.cronoOverride). Itens por mês (ex. administração)
    não contam pra duração: correm em paralelo com a obra toda. */
 const PRODUTIVIDADE = {
  "PRELIMINARES E DEMOLIÇÕES":35, "ALVENARIA E ESTRUTURA":12, "INSTALAÇÕES HIDRÁULICAS":10,
@@ -673,10 +679,21 @@ const PRODUTIVIDADE = {
  "PINTURA E TEXTURA":35, "ESQUADRIAS, VIDROS E ESPELHOS":3, "MARCENARIA":6,
  "ÁREA EXTERNA E PAISAGISMO":20, "LIMPEZA E ENTREGA":40
 };
+const ehFimDeSemana = d => { const w=d.getDay(); return w===0||w===6; };
+function proximoDiaUtil(d){ const r=new Date(d); while(ehFimDeSemana(r)) r.setDate(r.getDate()+1); return r; }
+/* conta 'inicio' como o 1º dia útil e avança até fechar 'diasUteis' dias úteis */
+function fimDiasUteis(inicio, diasUteis){
+  let r=new Date(inicio), n=0;
+  while(n<diasUteis){
+    if(!ehFimDeSemana(r)) n++;
+    if(n<diasUteis) r.setDate(r.getDate()+1);
+  }
+  return r;
+}
 function calcularCronograma(){
   if(!obra) return [];
   const ini0 = obra.inicioObra ? new Date(obra.inicioObra+'T00:00:00') : new Date();
-  let cursor = new Date(ini0);
+  let cursor = proximoDiaUtil(ini0);
   const linhas=[];
   etapas().forEach(et=>{
     const l = obra.itens.filter(i=>i.etapa===et && i.un!=='mês');
@@ -686,9 +703,10 @@ function calcularCronograma(){
     const over = obra.cronoOverride && obra.cronoOverride[et];
     const dias = over>0 ? over : Math.max(2, Math.ceil(qtd/prod));
     const inicio = new Date(cursor);
-    const fim = new Date(cursor); fim.setDate(fim.getDate()+dias-1);
+    const fim = fimDiasUteis(cursor, dias);
     linhas.push({etapa:et, dias, inicio, fim});
     cursor = new Date(fim); cursor.setDate(cursor.getDate()+1);
+    cursor = proximoDiaUtil(cursor);
   });
   return linhas;
 }
@@ -1388,7 +1406,7 @@ function renderCrono(){
   linhas.forEach(r=>{
     const d=document.createElement('div'); d.className='et-l';
     d.innerHTML=`<div class="r"><span>${esc(r.etapa)}</span>
-      <span><input class="q crono-dias" type="number" min="1" value="${r.dias}"> dias</span></div>
+      <span><input class="q crono-dias" type="number" min="1" value="${r.dias}"> dias úteis</span></div>
       <div class="sm">${dataBR(r.inicio)} → ${dataBR(r.fim)}</div>`;
     d.querySelector('.crono-dias').onclick=e=>e.stopPropagation();
     d.querySelector('.crono-dias').onchange=e=>{
@@ -1514,6 +1532,12 @@ let arquivos=[], ambientes=[], propostas=[], achadosDoc={};
 /* --- chave do Gemini (fica só no aparelho) -------------------------------- */
 store.get('gemini:key').then(k=>{ if(k) $('#geminiKey').value=k; });
 $('#geminiKey').addEventListener('change', ()=>{ store.set('gemini:key', $('#geminiKey').value.trim()); });
+
+/* --- dados do responsável pela obra, pra assinatura no PDF (fica no aparelho) */
+store.get('resp:nome').then(v=>{ if(v) $('#respNome').value=v; });
+store.get('resp:cnpj').then(v=>{ if(v) $('#respCnpj').value=v; });
+$('#respNome').addEventListener('change', ()=>{ store.set('resp:nome', $('#respNome').value.trim()); });
+$('#respCnpj').addEventListener('change', ()=>{ store.set('resp:cnpj', $('#respCnpj').value.trim()); });
 
 /* --- ambientes via Gemini --------------------------------------------------
    Mesma saída da extração local: [{nome, area, on:true}]. Se a chamada
@@ -1954,14 +1978,31 @@ function gerarPDF(){
     head:[['Etapa','Serviço','Un','Qtd','MO un.','Mat un.','Total']], body:corpo});
 
   const crono=calcularCronograma();
+  doc.addPage(); y=18;
   if(crono.length){
-    doc.addPage(); y=18;
     doc.setFont('helvetica','bold'); doc.setFontSize(12);
-    doc.text('Cronograma de execução (estimativa)', mg, y);
+    doc.text('Cronograma de execução (estimativa · dias úteis)', mg, y);
     doc.autoTable({startY:y+6, margin:{left:mg,right:mg}, styles:{fontSize:9}, headStyles:{fillColor:[22,24,26]},
-      head:[['Etapa','Dias','Início','Fim']],
+      head:[['Etapa','Dias úteis','Início','Fim']],
       body:crono.map(r=>[r.etapa,String(r.dias),dataBR(r.inicio),dataBR(r.fim)])});
+    y=doc.lastAutoTable.finalY;
   }
+
+  /* assinaturas */
+  const respNome=($('#respNome').value||'').trim(), respCnpj=($('#respCnpj').value||'').trim();
+  y+=34;
+  if(y>260){ doc.addPage(); y=40; }
+  const pgW=doc.internal.pageSize.getWidth(), gap=14, colW=(pgW-2*mg-gap)/2;
+  doc.setDrawColor(140);
+  doc.line(mg, y, mg+colW, y);
+  doc.line(mg+colW+gap, y, mg+colW+gap+colW, y);
+  doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor(0);
+  doc.text(obra.cliente||'Cliente', mg, y+5);
+  doc.text(respNome||'Responsável pela obra', mg+colW+gap, y+5);
+  doc.setFontSize(7.5); doc.setTextColor(120);
+  doc.text('CLIENTE', mg, y+9.5);
+  doc.text('RESPONSÁVEL PELA OBRA'+(respCnpj?' · CNPJ '+respCnpj:''), mg+colW+gap, y+9.5);
+  doc.setTextColor(0);
 
   doc.save((obra.nome||'orcamento').replace(/\W+/g,'-').toLowerCase()+'.pdf');
 }
@@ -1985,7 +2026,7 @@ function gerarExcel(){
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(etAba), 'Resumo por etapa');
 
   const crono=calcularCronograma();
-  const cronoAba=[['Etapa','Dias','Início','Fim']];
+  const cronoAba=[['Etapa','Dias úteis','Início','Fim']];
   crono.forEach(r=>cronoAba.push([r.etapa,r.dias,dataBR(r.inicio),dataBR(r.fim)]));
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(cronoAba), 'Cronograma');
 
