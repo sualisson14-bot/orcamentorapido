@@ -605,9 +605,34 @@ function gerarFaixas(mo,mat,id){
   return p;
 }
 CAT_PADRAO.forEach(c=>{ c.p = gerarFaixas(c.mo,c.mat,c.id); });
+
+/* --- mão de obra por capital -----------------------------------------------
+   Multiplicador sobre o "mo" (só mão de obra, material não muda), calculado a
+   partir do preço mediano SINAPI (10/2023) de 14 ofícios em cada capital,
+   relativo a Fortaleza — a praça de referência desta tabela de preços. */
+const REGIOES={
+ PI:{capital:'Teresina — PI',mult:0.948}, RN:{capital:'Natal — RN',mult:0.957},
+ PB:{capital:'João Pessoa — PB',mult:0.972}, AL:{capital:'Maceió — AL',mult:0.974},
+ SE:{capital:'Aracaju — SE',mult:0.977}, MS:{capital:'Campo Grande — MS',mult:0.997},
+ CE:{capital:'Fortaleza — CE',mult:1.000}, MA:{capital:'São Luís — MA',mult:1.031},
+ AP:{capital:'Macapá — AP',mult:1.034}, AC:{capital:'Rio Branco — AC',mult:1.041},
+ PA:{capital:'Belém — PA',mult:1.041}, MT:{capital:'Cuiabá — MT',mult:1.043},
+ TO:{capital:'Palmas — TO',mult:1.053}, RO:{capital:'Porto Velho — RO',mult:1.054},
+ AM:{capital:'Manaus — AM',mult:1.066}, PE:{capital:'Recife — PE',mult:1.097},
+ DF:{capital:'Brasília — DF',mult:1.114}, ES:{capital:'Vitória — ES',mult:1.115},
+ BA:{capital:'Salvador — BA',mult:1.120}, GO:{capital:'Goiânia — GO',mult:1.135},
+ RR:{capital:'Boa Vista — RR',mult:1.177}, MG:{capital:'Belo Horizonte — MG',mult:1.207},
+ RS:{capital:'Porto Alegre — RS',mult:1.234}, SP:{capital:'São Paulo — SP',mult:1.385},
+ PR:{capital:'Curitiba — PR',mult:1.402}, SC:{capital:'Florianópolis — SC',mult:1.420},
+ RJ:{capital:'Rio de Janeiro — RJ',mult:1.424}
+};
+const REGIAO_PADRAO='CE';
+let regiaoAtual=REGIAO_PADRAO;
+
 function precoDe(c,pad){
   const t=(c && c.p && c.p[pad]) || [c?c.mo:0, c?c.mat:0];
-  return {mo:t[0]||0, mat:t[1]||0};
+  const mult=(REGIOES[regiaoAtual]||REGIOES[REGIAO_PADRAO]).mult;
+  return {mo:Math.round((t[0]||0)*mult), mat:t[1]||0};
 }
 /* garante faixas em catálogos gravados antes desta versão */
 function migrarCat(lista){
@@ -782,6 +807,7 @@ async function abrirObra(id, silencioso){
   if(!d){ if(!silencioso) toast('Obra não encontrada'); return; }
   obra=JSON.parse(d);
   obra.itens.forEach(i=>{ if(i.uid>=uid) uid=i.uid+1; });
+  regiaoAtual=obra.regiao||REGIAO_PADRAO;
   await store.set('obra:ultima', id);
   colapsadas=new Set();
   if(!silencioso) irPara('orc');
@@ -792,6 +818,8 @@ function novaObraDe(modeloKey, dados){
   const mapa=Object.fromEntries(catalogo.map(c=>[c.id,c]));
   const id='o'+Date.now().toString(36);
   const pad=dados.padrao||'m';
+  const regiao=dados.regiao||REGIAO_PADRAO;
+  regiaoAtual=regiao;
   const itens=(m.itens||[]).map(r=>{
     const c=mapa[r[0]]||{etapa:'GERAL',mo:0,mat:0};
     const p=precoDe(c,pad);
@@ -799,7 +827,7 @@ function novaObraDe(modeloKey, dados){
             mo:p.mo,mat:p.mat,pad:'',origem:'modelo',edit:{}};
   });
   obra={id,nome:dados.nome,cliente:dados.cliente,endereco:dados.endereco,
-        area:dados.area||m.area||0,padrao:pad,bdi:0,margem:0,reserva:10,
+        area:dados.area||m.area||0,padrao:pad,regiao,bdi:0,margem:0,reserva:10,
         criado:Date.now(),atualizado:Date.now(),itens};
   indice.unshift({id,nome:obra.nome,cliente:obra.cliente,total:0,mo:0,atualizado:Date.now()});
   salvarIndice(); store.set('obra:ultima',id); salvarObra();
@@ -907,6 +935,10 @@ function menuObra(o){
   ]);
 }
 
+function optsRegiao(sel){
+  return Object.entries(REGIOES).map(([uf,r])=>
+    `<option value="${uf}" ${uf===sel?'selected':''}>${esc(r.capital)}</option>`).join('');
+}
 function formNovaObra(){
   const opts=Object.entries(MODELOS).map(([k,m])=>`<option value="${k}">${m.nome}</option>`).join('');
   return {titulo:'Nova obra', html:`
@@ -915,6 +947,7 @@ function formNovaObra(){
     <div class="f"><label>Endereço</label><input id="n-end" placeholder="Rua, bairro"></div>
     <div class="f"><label>Área (m²)</label><input id="n-area" inputmode="decimal" placeholder="70"></div>
     <div class="f"><label>Começar de um modelo</label><select id="n-mod">${opts}</select></div>
+    <div class="f"><label>Praça (mão de obra por capital)</label><select id="n-reg">${optsRegiao(REGIAO_PADRAO)}</select></div>
     <div class="f"><label>Padrão do serviço</label>
       <div class="segs" id="n-seg">
         <button data-p="b">Baixo</button><button data-p="m" class="on">Médio</button><button data-p="a">Alto</button>
@@ -928,7 +961,7 @@ function formNovaObra(){
       $('#n-ok').onclick=()=>{
         const nome=$('#n-nome').value.trim()||'Obra sem nome';
         novaObraDe($('#n-mod').value,{nome,cliente:$('#n-cli').value.trim(),padrao:pad,
-          endereco:$('#n-end').value.trim(),area:nn($('#n-area').value)});
+          regiao:$('#n-reg').value, endereco:$('#n-end').value.trim(),area:nn($('#n-area').value)});
         fecharSheet(); renderObras();
       };
     }};
@@ -939,6 +972,7 @@ function abrirDadosObra(){
     <div class="f"><label>Cliente</label><input id="e-cli" value="${esc(obra.cliente||'')}"></div>
     <div class="f"><label>Endereço</label><input id="e-end" value="${esc(obra.endereco||'')}"></div>
     <div class="f"><label>Área (m²)</label><input id="e-area" inputmode="decimal" value="${obra.area||''}"></div>
+    <div class="f"><label>Praça (mão de obra por capital)</label><select id="e-reg">${optsRegiao(obra.regiao||REGIAO_PADRAO)}</select></div>
     <button class="btn pri" id="e-ok">Salvar</button>
     <button class="btn gh sm" id="e-apl">Reaplicar tabela de preços</button>`,
     onMount(){
@@ -946,6 +980,8 @@ function abrirDadosObra(){
         obra.nome=$('#e-nome').value.trim()||obra.nome;
         obra.cliente=$('#e-cli').value.trim(); obra.endereco=$('#e-end').value.trim();
         obra.area=nn($('#e-area').value);
+        const uf=$('#e-reg').value;
+        if(uf!==(obra.regiao||REGIAO_PADRAO)){ fecharSheet(); mudarRegiao(uf); irPara(tela); renderObras(); return; }
         salvarObra(); fecharSheet(); irPara(tela); renderTudo(); renderObras();
       };
       $('#e-apl').onclick=()=>{
@@ -956,6 +992,21 @@ function abrirDadosObra(){
         salvarObra(); fecharSheet(); renderTudo(); toast(n+' itens atualizados');
       };
     }});
+}
+/* Muda a praça de uma obra existente: recalcula mo de todo item ligado à
+   tabela (mantém preço digitado à mão), igual ao que aplicarPadrao faz. */
+function mudarRegiao(uf){
+  if(!obra || !REGIOES[uf]) return;
+  const mapa=Object.fromEntries(catalogo.map(c=>[c.id,c]));
+  regiaoAtual=uf;
+  let n=0, mantidos=0;
+  obra.itens.forEach(i=>{
+    if(i.edit && (i.edit.mo||i.edit.mat)){ mantidos++; return; }
+    const c=i.catId?mapa[i.catId]:null; if(!c) return;
+    const p=precoDe(c, i.pad||obra.padrao||'m'); i.mo=p.mo; i.mat=p.mat; n++;
+  });
+  obra.regiao=uf; salvarObra(); renderTudo();
+  toast('Praça: '+REGIOES[uf].capital+' · '+n+' itens atualizados'+(mantidos?' · '+mantidos+' com preço próprio':''));
 }
 
 /* ==========================================================
