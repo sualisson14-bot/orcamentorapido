@@ -619,33 +619,36 @@ function gerarFaixas(mo,mat,id){
 }
 CAT_PADRAO.forEach(c=>{ c.p = gerarFaixas(c.mo,c.mat,c.id); });
 
-/* --- mão de obra por capital -----------------------------------------------
-   Multiplicador sobre o "mo" (só mão de obra, material não muda), calculado a
-   partir do preço mediano SINAPI (10/2023) de 14 ofícios em cada capital,
-   relativo a Fortaleza — a praça de referência desta tabela de preços. */
+/* --- mão de obra e material por capital ------------------------------------
+   Dois multiplicadores por capital, calculados sobre o preço mediano SINAPI
+   (10/2023), relativos a Fortaleza — a praça de referência desta tabela:
+   "mo" vem de 14 ofícios (pedreiro, eletricista, pintor...); "mat" vem de uma
+   cesta de 12 insumos comuns (cimento, areia, bloco, aço, fio, tinta...).
+   Costumam andar em direções opostas: mão de obra é mais cara no Sul/Sudeste
+   (salário maior), material é mais caro no Norte (frete até lá). */
 const REGIOES={
- PI:{capital:'Teresina — PI',mult:0.948}, RN:{capital:'Natal — RN',mult:0.957},
- PB:{capital:'João Pessoa — PB',mult:0.972}, AL:{capital:'Maceió — AL',mult:0.974},
- SE:{capital:'Aracaju — SE',mult:0.977}, MS:{capital:'Campo Grande — MS',mult:0.997},
- CE:{capital:'Fortaleza — CE',mult:1.000}, MA:{capital:'São Luís — MA',mult:1.031},
- AP:{capital:'Macapá — AP',mult:1.034}, AC:{capital:'Rio Branco — AC',mult:1.041},
- PA:{capital:'Belém — PA',mult:1.041}, MT:{capital:'Cuiabá — MT',mult:1.043},
- TO:{capital:'Palmas — TO',mult:1.053}, RO:{capital:'Porto Velho — RO',mult:1.054},
- AM:{capital:'Manaus — AM',mult:1.066}, PE:{capital:'Recife — PE',mult:1.097},
- DF:{capital:'Brasília — DF',mult:1.114}, ES:{capital:'Vitória — ES',mult:1.115},
- BA:{capital:'Salvador — BA',mult:1.120}, GO:{capital:'Goiânia — GO',mult:1.135},
- RR:{capital:'Boa Vista — RR',mult:1.177}, MG:{capital:'Belo Horizonte — MG',mult:1.207},
- RS:{capital:'Porto Alegre — RS',mult:1.234}, SP:{capital:'São Paulo — SP',mult:1.385},
- PR:{capital:'Curitiba — PR',mult:1.402}, SC:{capital:'Florianópolis — SC',mult:1.420},
- RJ:{capital:'Rio de Janeiro — RJ',mult:1.424}
+ PI:{capital:'Teresina — PI', mo:0.948, mat:0.984}, RN:{capital:'Natal — RN', mo:0.957, mat:0.841},
+ PB:{capital:'João Pessoa — PB', mo:0.972, mat:0.918}, AL:{capital:'Maceió — AL', mo:0.974, mat:1.038},
+ SE:{capital:'Aracaju — SE', mo:0.977, mat:0.955}, MS:{capital:'Campo Grande — MS', mo:0.997, mat:0.994},
+ CE:{capital:'Fortaleza — CE', mo:1.000, mat:1.000}, MA:{capital:'São Luís — MA', mo:1.031, mat:1.041},
+ AP:{capital:'Macapá — AP', mo:1.034, mat:1.072}, AC:{capital:'Rio Branco — AC', mo:1.041, mat:1.310},
+ PA:{capital:'Belém — PA', mo:1.041, mat:1.187}, MT:{capital:'Cuiabá — MT', mo:1.043, mat:1.104},
+ TO:{capital:'Palmas — TO', mo:1.053, mat:1.060}, RO:{capital:'Porto Velho — RO', mo:1.054, mat:1.140},
+ AM:{capital:'Manaus — AM', mo:1.066, mat:1.200}, PE:{capital:'Recife — PE', mo:1.097, mat:1.002},
+ DF:{capital:'Brasília — DF', mo:1.114, mat:1.011}, ES:{capital:'Vitória — ES', mo:1.115, mat:0.903},
+ BA:{capital:'Salvador — BA', mo:1.120, mat:0.987}, GO:{capital:'Goiânia — GO', mo:1.135, mat:0.974},
+ RR:{capital:'Boa Vista — RR', mo:1.177, mat:1.207}, MG:{capital:'Belo Horizonte — MG', mo:1.207, mat:0.890},
+ RS:{capital:'Porto Alegre — RS', mo:1.234, mat:0.982}, SP:{capital:'São Paulo — SP', mo:1.385, mat:0.868},
+ PR:{capital:'Curitiba — PR', mo:1.402, mat:0.917}, SC:{capital:'Florianópolis — SC', mo:1.420, mat:0.994},
+ RJ:{capital:'Rio de Janeiro — RJ', mo:1.424, mat:0.923}
 };
 const REGIAO_PADRAO='CE';
 let regiaoAtual=REGIAO_PADRAO;
 
 function precoDe(c,pad){
   const t=(c && c.p && c.p[pad]) || [c?c.mo:0, c?c.mat:0];
-  const mult=(REGIOES[regiaoAtual]||REGIOES[REGIAO_PADRAO]).mult;
-  return {mo:Math.round((t[0]||0)*mult), mat:t[1]||0};
+  const r=REGIOES[regiaoAtual]||REGIOES[REGIAO_PADRAO];
+  return {mo:Math.round((t[0]||0)*r.mo), mat:Math.round((t[1]||0)*r.mat)};
 }
 /* garante faixas em catálogos gravados antes desta versão */
 function migrarCat(lista){
@@ -994,7 +997,7 @@ function formNovaObra(){
     <div class="f"><label>Endereço</label><input id="n-end" placeholder="Rua, bairro"></div>
     <div class="f"><label>Área (m²)</label><input id="n-area" inputmode="decimal" placeholder="70"></div>
     <div class="f"><label>Começar de um modelo</label><select id="n-mod">${opts}</select></div>
-    <div class="f"><label>Praça (mão de obra por capital)</label><select id="n-reg">${optsRegiao(REGIAO_PADRAO)}</select></div>
+    <div class="f"><label>Praça (mão de obra e material por capital)</label><select id="n-reg">${optsRegiao(REGIAO_PADRAO)}</select></div>
     <div class="f"><label>Padrão do serviço</label>
       <div class="segs" id="n-seg">
         <button data-p="b">Baixo</button><button data-p="m" class="on">Médio</button><button data-p="a">Alto</button>
@@ -1019,7 +1022,7 @@ function abrirDadosObra(){
     <div class="f"><label>Cliente</label><input id="e-cli" value="${esc(obra.cliente||'')}"></div>
     <div class="f"><label>Endereço</label><input id="e-end" value="${esc(obra.endereco||'')}"></div>
     <div class="f"><label>Área (m²)</label><input id="e-area" inputmode="decimal" value="${obra.area||''}"></div>
-    <div class="f"><label>Praça (mão de obra por capital)</label><select id="e-reg">${optsRegiao(obra.regiao||REGIAO_PADRAO)}</select></div>
+    <div class="f"><label>Praça (mão de obra e material por capital)</label><select id="e-reg">${optsRegiao(obra.regiao||REGIAO_PADRAO)}</select></div>
     <button class="btn pri" id="e-ok">Salvar</button>
     <button class="btn gh sm" id="e-apl">Reaplicar tabela de preços</button>`,
     onMount(){
@@ -1040,8 +1043,8 @@ function abrirDadosObra(){
       };
     }});
 }
-/* Muda a praça de uma obra existente: recalcula mo de todo item ligado à
-   tabela (mantém preço digitado à mão), igual ao que aplicarPadrao faz. */
+/* Muda a praça de uma obra existente: recalcula mo e mat de todo item ligado
+   à tabela (mantém preço digitado à mão), igual ao que aplicarPadrao faz. */
 function mudarRegiao(uf){
   if(!obra || !REGIOES[uf]) return;
   const mapa=Object.fromEntries(catalogo.map(c=>[c.id,c]));
