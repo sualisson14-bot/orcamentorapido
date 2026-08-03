@@ -213,6 +213,20 @@ input,select,textarea,button{font-family:inherit;font-size:16px;color:var(--ink)
 .et-l .mb i{display:block;height:100%;background:var(--marker)}
 .et-l .sm{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink3);margin-top:5px}
 
+/* ---------- linha do tempo do cronograma ---------- */
+.gantt{border:1px solid var(--rule);background:var(--panel);overflow:hidden}
+.gantt-ruler{display:flex;border-bottom:1px solid var(--rule);padding:7px 10px 5px}
+.gantt-ruler .gantt-lb{flex:0 0 92px}
+.gantt-ruler .gantt-tr{flex:1;position:relative;height:11px}
+.gantt-ruler .gantt-tr span{position:absolute;top:0;font-family:'IBM Plex Mono',monospace;font-size:8.5px;
+  color:var(--ink3);border-left:1px solid var(--rule);padding-left:3px;line-height:1;white-space:nowrap}
+.gantt-r{display:flex;align-items:center;padding:6px 10px;border-bottom:1px solid var(--rule2)}
+.gantt-r:last-child{border-bottom:none}
+.gantt-r .gantt-lb{flex:0 0 92px;font-size:10px;line-height:1.25;padding-right:8px;overflow:hidden;
+  text-overflow:ellipsis;white-space:nowrap}
+.gantt-r .gantt-tr{flex:1;height:14px;background:var(--rule2);position:relative;border-radius:1px}
+.gantt-r .gantt-tr i{position:absolute;top:0;bottom:0;background:var(--stamp);border-radius:1px;min-width:3px}
+
 /* ---------- preços ---------- */
 .srch{width:100%;padding:12px;border:1.3px solid var(--rule);background:var(--panel);outline:none;font-size:16px;
   margin-bottom:10px;min-height:46px}
@@ -448,6 +462,7 @@ input,select,textarea,button{font-family:inherit;font-size:16px;color:var(--ink)
       <h3 style="font-family:'Archivo Narrow';font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink3);border-bottom:1px solid var(--rule);padding-bottom:7px;margin:22px 0 7px">Cronograma de execução (estimativa · dias úteis)</h3>
       <div class="f"><label>Início da obra</label><input type="date" id="cronoInicio"></div>
     </div>
+    <div class="pad" style="padding-bottom:4px"><div class="gantt-wrap"><div id="ganttChart" class="gantt"></div></div></div>
     <div id="listaCrono"></div>
     <div class="pad">
       <p class="hint" style="margin:0 0 4px">Duração por etapa em dias úteis (sem sáb/dom), estimada pela produtividade média de uma equipe — ajuste os dias se souber o ritmo real. Itens por mês (ex. administração) correm em paralelo e não entram na duração.</p>
@@ -1398,10 +1413,32 @@ function renderResumo(){
   });
   renderCrono();
 }
+function renderGantt(linhas){
+  const el=$('#ganttChart');
+  if(!linhas.length){ el.innerHTML=''; return; }
+  const dIni=linhas[0].inicio, dFim=linhas[linhas.length-1].fim;
+  const totalDias=Math.round((dFim-dIni)/86400000)+1;
+  const semanas=Math.ceil(totalDias/7);
+  let ruler='<div class="gantt-ruler"><div class="gantt-lb"></div><div class="gantt-tr">';
+  for(let s=0;s<=semanas;s++){
+    const off=s*7; if(off>totalDias) break;
+    const d=new Date(dIni); d.setDate(d.getDate()+off);
+    ruler+=`<span style="left:${off/totalDias*100}%">${d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'})}</span>`;
+  }
+  ruler+='</div></div>';
+  const linhasHtml=linhas.map(r=>{
+    const off=Math.round((r.inicio-dIni)/86400000), dur=Math.round((r.fim-r.inicio)/86400000)+1;
+    const left=off/totalDias*100, width=Math.max(dur/totalDias*100,1.5);
+    return `<div class="gantt-r"><div class="gantt-lb" title="${esc(r.etapa)}">${esc(r.etapa)}</div>
+      <div class="gantt-tr"><i style="left:${left}%;width:${width}%"></i></div></div>`;
+  }).join('');
+  el.innerHTML=ruler+linhasHtml;
+}
 function renderCrono(){
   if(!obra) return;
   $('#cronoInicio').value = obra.inicioObra || new Date().toISOString().slice(0,10);
   const linhas=calcularCronograma();
+  renderGantt(linhas);
   const el=$('#listaCrono'); el.innerHTML='';
   linhas.forEach(r=>{
     const d=document.createElement('div'); d.className='et-l';
@@ -1981,8 +2018,34 @@ function gerarPDF(){
   doc.addPage(); y=18;
   if(crono.length){
     doc.setFont('helvetica','bold'); doc.setFontSize(12);
-    doc.text('Cronograma de execução (estimativa · dias úteis)', mg, y);
-    doc.autoTable({startY:y+6, margin:{left:mg,right:mg}, styles:{fontSize:9}, headStyles:{fillColor:[22,24,26]},
+    doc.text('Cronograma de execução (estimativa · dias úteis)', mg, y); y+=9;
+
+    /* linha do tempo (gantt) */
+    const ganttH=10+crono.length*6+8;
+    if(y+ganttH>280){ doc.addPage(); y=18+9; }
+    const dIni=crono[0].inicio, dFim=crono[crono.length-1].fim;
+    const totalDias=Math.round((dFim-dIni)/86400000)+1;
+    const labelW=42, trackX=mg+labelW, trackW=182-labelW;
+    const semanas=Math.ceil(totalDias/7), gTop=y, gBot=y+crono.length*6+2;
+    doc.setFont('helvetica','normal'); doc.setFontSize(6.5); doc.setDrawColor(210); doc.setTextColor(130);
+    for(let s=0;s<=semanas;s++){
+      const off=s*7; if(off>totalDias) break;
+      const dx=trackX+trackW*(off/totalDias);
+      const d=new Date(dIni); d.setDate(d.getDate()+off);
+      doc.line(dx,gTop,dx,gBot);
+      doc.text(d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'}), dx+0.8, gTop-1.5);
+    }
+    crono.forEach(r=>{
+      const off=Math.round((r.inicio-dIni)/86400000), dur=Math.round((r.fim-r.inicio)/86400000)+1;
+      const bx=trackX+trackW*(off/totalDias), bw=Math.max(trackW*(dur/totalDias),1.5);
+      doc.setFontSize(7); doc.setTextColor(0);
+      doc.text(r.etapa.slice(0,26), mg, y+4);
+      doc.setFillColor(183,51,42); doc.rect(bx,y+1,bw,3.5,'F');
+      y+=6;
+    });
+    y+=8; doc.setTextColor(0);
+
+    doc.autoTable({startY:y, margin:{left:mg,right:mg}, styles:{fontSize:9}, headStyles:{fillColor:[22,24,26]},
       head:[['Etapa','Dias úteis','Início','Fim']],
       body:crono.map(r=>[r.etapa,String(r.dias),dataBR(r.inicio),dataBR(r.fim)])});
     y=doc.lastAutoTable.finalY;
